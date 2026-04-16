@@ -1,0 +1,333 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   LIGHT MODE — Pearl White & Rich Indigo-Blue
+   ============================================================ */
+:root {
+  --background: oklch(0.985 0.005 255);
+  --foreground: oklch(0.14 0.025 265);
+  --card: oklch(0.99 0.003 255);
+  --card-foreground: oklch(0.14 0.025 265);
+  --popover: oklch(0.99 0.003 255);
+  --popover-foreground: oklch(0.14 0.025 265);
+  /* Rich indigo-blue primary */
+  --primary: oklch(0.42 0.22 265);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.93 0.012 260);
+  --secondary-foreground: oklch(0.3 0.08 265);
+  --muted: oklch(0.93 0.01 260);
+  --muted-foreground: oklch(0.52 0.04 265);
+  /* Warm gold accent */
+  --accent: oklch(0.63 0.18 72);
+  --accent-foreground: oklch(0.14 0.025 265);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.88 0.012 260);
+  --input: oklch(0.96 0.005 260);
+  --ring: oklch(0.42 0.22 265);
+  --radius: 0.75rem;
+  --chart-1: oklch(0.42 0.22 265);
+  --chart-2: oklch(0.63 0.18 72);
+  --chart-3: oklch(0.55 0.15 30);
+  --chart-4: oklch(0.40 0.15 265);
+  --chart-5: oklch(0.65 0.15 72);
+  --sidebar: oklch(0.98 0.003 260);
+  --sidebar-foreground: oklch(0.14 0.025 265);
+  --sidebar-primary: oklch(0.42 0.22 265);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.93 0.012 260);
+  --sidebar-accent-foreground: oklch(0.3 0.08 265);
+  --sidebar-border: oklch(0.88 0.012 260);
+  --sidebar-ring: oklch(0.42 0.22 265);
+}
+
+/* ============================================================
+   DARK MODE — Deep Navy & Vivid Cornflower Blue
+   ============================================================ */
+.dark {
+  --background: oklch(0.113 0.018 270);
+  --foreground: oklch(0.97 0.005 260);
+  --card: oklch(0.143 0.015 270);
+  --card-foreground: oklch(0.97 0.005 260);
+  --popover: oklch(0.143 0.015 270);
+  --popover-foreground: oklch(0.97 0.005 260);
+  /* Vivid cornflower blue */
+  --primary: oklch(0.68 0.20 262);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.19 0.018 270);
+  --secondary-foreground: oklch(0.97 0.005 260);
+  --muted: oklch(0.19 0.018 270);
+  --muted-foreground: oklch(0.70 0.012 265);
+  /* Warm gold accent (brighter in dark) */
+  --accent: oklch(0.72 0.17 72);
+  --accent-foreground: oklch(0.12 0.02 265);
+  --destructive: oklch(0.45 0.2 20);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.21 0.015 270);
+  --input: oklch(0.21 0.015 270);
+  --ring: oklch(0.68 0.20 262);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.143 0.015 270);
+  --sidebar-foreground: oklch(0.97 0.005 260);
+  --sidebar-primary: oklch(0.68 0.20 262);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.19 0.018 270);
+  --sidebar-accent-foreground: oklch(0.97 0.005 260);
+  --sidebar-border: oklch(0.21 0.015 270);
+  --sidebar-ring: oklch(0.68 0.20 262);
+}
+
+/* ============================================================
+   THEME TOKEN MAPPING
+   ============================================================ */
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+}
+
+/* ============================================================
+   GLASS UTILITIES
+   ============================================================ */
+@utility glass {
+  background-color: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06);
+}
+
+.dark .glass {
+  background-color: rgba(10, 14, 28, 0.82);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  box-shadow: 0 4px 40px rgba(0, 0, 0, 0.55);
+}
+
+@utility glass-card {
+  background-color: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.07), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+
+.dark .glass-card {
+  background-color: rgba(16, 20, 40, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.035) inset;
+}
+
+/* ============================================================
+   GRADIENT TEXT
+   ============================================================ */
+@utility gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ============================================================
+   SECTION LABEL PILL
+   ============================================================ */
+@utility section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 18px;
+  border-radius: 100px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+/* ============================================================
+   SHIMMER BUTTON (plain CSS for pseudo-elements)
+   ============================================================ */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -75%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.65s ease;
+  pointer-events: none;
+}
+
+.btn-shimmer:hover::after {
+  left: 125%;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes blob {
+  0%   { transform: translate(0px, 0px) scale(1); }
+  33%  { transform: translate(30px, -50px) scale(1.1); }
+  66%  { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@utility animate-blob {
+  animation: blob 9s infinite ease-in-out;
+}
+
+@utility animate-fade-up {
+  animation: fadeUp 0.7s ease-out both;
+}
+
+@utility animate-fade-in {
+  animation: fadeIn 0.5s ease-out both;
+}
+
+@utility animate-scale-in {
+  animation: scaleIn 0.4s ease-out both;
+}
+
+@utility animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+@utility animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+@utility animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+@utility animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+@utility animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+@utility animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* ============================================================
+   VIEW TRANSITIONS
+   ============================================================ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+
+.dark::view-transition-old(root) { z-index: 2; }
+.dark::view-transition-new(root) { z-index: 1; }
+
+/* ============================================================
+   PREMIUM THIN SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
