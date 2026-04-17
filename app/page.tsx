@@ -6,7 +6,7 @@ import QuickLinksSection from '@/components/quick-links-section'
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-transparent relative pt-16">
+    <main className="min-h-screen bg-transparent relative">
       <HeroSection />
       <AboutSection />
       <QuickLinksSection />

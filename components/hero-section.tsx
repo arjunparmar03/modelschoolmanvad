@@ -18,9 +18,9 @@ export default function HeroSection() {
     <section className="w-full">
 
       {/* ── Mobile Layout ─────────────────────────────────────── */}
-      <div className="md:hidden">
-        {/* Image */}
-        <div className="relative w-full h-64">
+      <div className="md:hidden relative w-full min-h-[92svh] flex flex-col justify-end overflow-hidden pb-10">
+        {/* Background Image */}
+        <div className="absolute inset-0">
           <Image
             src="/school-building.jpg"
             alt="Model School Building"
@@ -28,33 +28,71 @@ export default function HeroSection() {
             className="object-cover object-center"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
+          {/* Rich glassy overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/20" />
+          <div className="absolute inset-0 bg-primary/20 mix-blend-multiply" />
         </div>
 
-        {/* Text panel */}
-        <div className="relative px-5 py-10 text-center bg-gradient-to-b from-primary to-primary/95">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-bold tracking-widest uppercase bg-white/12 border border-white/18 text-white/90 mb-5">
-            🎓 Government Model School
+        {/* Content */}
+        <div className="relative z-10 px-5 pt-28 animate-fade-up">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[0.65rem] font-bold tracking-[0.12em] uppercase bg-white/10 backdrop-blur-md border border-white/20 text-white/95 mb-4 shadow-sm">
+            🎓 Govt. Model School, Manvad
           </span>
-          <h1
-            className="text-3xl font-bold text-white mb-3 leading-[1.15] font-display"
-          >
-            Model School, <span style={{ color: '#fbbf24' }}>Manvad</span>
+          <h1 className="text-[2.5rem] leading-[1.05] font-bold text-white mb-3 font-display">
+            Model School,
+            <span
+              className="block mt-1"
+              style={{
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Manvad
+            </span>
           </h1>
-          <p className="text-white/78 mb-7 text-sm leading-relaxed max-w-xs mx-auto">
-            Quality education for classes 6 to 12.
+          <p className="text-white/80 mb-6 text-sm leading-relaxed max-w-[280px]">
+            Quality education for classes 6 to 12. Dedicated to academic excellence and student success.
           </p>
-          <div className="flex flex-col gap-3 items-center">
+
+          {/* Stats Carousel */}
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 mb-8 pb-3 -mx-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {stats.map((stat, i) => {
+              const Icon = stat.icon
+              return (
+                <div
+                  key={i}
+                  className="snap-center shrink-0 w-[110px] backdrop-blur-md bg-white/10 border border-white/15 rounded-2xl p-3.5 text-center shadow-lg"
+                >
+                  <Icon size={18} className="text-yellow-400 mx-auto mb-2" />
+                  <div className="text-white font-bold text-lg leading-none font-display mb-1">
+                    {stat.value}
+                  </div>
+                  <div className="text-white/60 text-[0.65rem] font-medium tracking-wider uppercase">
+                    {stat.label}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col xs:flex-row gap-3">
             <button
               onClick={() => scrollTo('contact')}
-              className="btn-shimmer w-full max-w-xs px-6 py-3 rounded-full font-semibold text-sm text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+              className="btn-shimmer group flex items-center justify-center gap-2 w-full xs:w-auto px-6 py-3.5 rounded-full font-semibold text-sm text-white shadow-xl transition-all duration-300 active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
             >
               Contact Us
+              <ArrowRight
+                size={16}
+                className="group-hover:translate-x-1 transition-transform duration-300"
+              />
             </button>
             <button
               onClick={() => scrollTo('about')}
-              className="w-full max-w-xs px-6 py-3 rounded-full border border-white/30 text-white font-medium text-sm hover:bg-white/10 transition-all duration-300 backdrop-blur-sm"
+              className="w-full xs:w-auto px-6 py-3.5 rounded-full font-semibold text-sm border border-white/30 text-white hover:bg-white/10 transition-all duration-300 backdrop-blur-sm active:scale-[0.98]"
             >
               About Us
             </button>
