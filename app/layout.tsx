@@ -5,8 +5,7 @@ import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
 
 import { ThemeProvider } from '@/components/theme-provider'
-import Navbar from '@/components/navbar'
-import Footer from '@/components/footer'
+import FrontendLayout from '@/components/frontend-layout'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -64,13 +63,9 @@ export default function RootLayout({
             <div className="absolute bottom-[-20%] left-[25%] w-[55%] h-[60%] bg-primary/10 dark:bg-primary/6 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-[120px] animate-blob animation-delay-4000" />
           </div>
 
-          <div className="relative z-0 flex flex-col min-h-screen">
-            <Navbar />
-            <div className="flex-1">
-              {children}
-            </div>
-            <Footer />
-          </div>
+          <FrontendLayout>
+            {children}
+          </FrontendLayout>
           <Analytics />
         </ThemeProvider>
       </body>

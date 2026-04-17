@@ -1,38 +1,23 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 
-const activities = [
-  {
-    id: 'yoga',
-    title: 'Yoga & Sports',
-    description: 'Physical fitness and wellness programs including yoga and outdoor sports activities',
-    thumbnail: '/yoga-sports.jpg',
-    images: [{ src: '/yoga-sports.jpg', alt: 'Yoga and Sports Activities' }],
-  },
-  {
-    id: 'vocational',
-    title: 'Vocational Education',
-    description: 'Skill-based education programs developing practical expertise and professional skills',
-    thumbnail: '/vocational-education.jpg',
-    images: [{ src: '/vocational-education.jpg', alt: 'Vocational Education and Skill Development' }],
-  },
-  {
-    id: 'health',
-    title: 'Health Awareness',
-    description: 'Health awareness campaigns and wellness programs including blood checking drives',
-    thumbnail: '/health-awareness.jpg',
-    images: [{ src: '/health-awareness.jpg', alt: 'Health Awareness Activities' }],
-  },
-]
+
 
 export default function ActivitiesSection() {
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [dynamicActivities, setDynamicActivities] = useState<any[]>([])
 
-  const activeData = activities.find((a) => a.id === selectedActivity)
+  useEffect(() => {
+    fetch('/api/cms').then(r => r.json()).then(data => {
+      if (data?.activities?.length) setDynamicActivities(data.activities)
+    }).catch(e => console.log(e))
+  }, [])
+
+  const activeData = dynamicActivities.find((a) => a.id === selectedActivity)
   const images = activeData?.images ?? []
 
   const next = () => setCurrentIndex((p) => (p + 1) % images.length)
@@ -64,7 +49,7 @@ export default function ActivitiesSection() {
 
         {/* Activity Grid */}
         <div className="grid md:grid-cols-3 gap-6">
-          {activities.map((act) => (
+          {dynamicActivities.map((act) => (
             <div
               key={act.id}
               className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-2xl hover:shadow-black/20 transition-all duration-400 cursor-pointer h-72 hover:-translate-y-1"

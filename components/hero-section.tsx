@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
 import { ArrowRight, Users, BookOpen, Award, Home } from 'lucide-react'
 
 const stats = [
@@ -11,8 +12,20 @@ const stats = [
 ]
 
 export default function HeroSection() {
+  const [cms, setCms] = useState<any>(null)
+  
+  useEffect(() => {
+    fetch('/api/cms').then(r => r.json()).then(data => {
+      if (data && data.content) setCms(data)
+    }).catch(e => console.error("CMS failed to load"))
+  }, [])
+
   const scrollTo = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+
+  const headingStr = cms?.content?.heroHeading || 'Model School, Manvad'
+  const subtitleStr = cms?.content?.heroSubtitle || 'Quality education for classes 6 to 12. Dedicated to academic excellence and student success.'
+
 
   return (
     <section className="w-full">
@@ -39,21 +52,27 @@ export default function HeroSection() {
             🎓 Govt. Model School, Manvad
           </span>
           <h1 className="text-[2.5rem] leading-[1.05] font-bold text-white mb-3 font-display">
-            Model School,
-            <span
-              className="block mt-1"
-              style={{
-                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              Manvad
-            </span>
+            {headingStr.includes(',') ? (
+              <>
+                {headingStr.split(',')[0]},
+                <span
+                  className="block mt-1"
+                  style={{
+                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {headingStr.split(',').slice(1).join(',')}
+                </span>
+              </>
+            ) : (
+              headingStr
+            )}
           </h1>
           <p className="text-white/80 mb-6 text-sm leading-relaxed max-w-[280px]">
-            Quality education for classes 6 to 12. Dedicated to academic excellence and student success.
+            {subtitleStr}
           </p>
 
           {/* Stats Carousel */}
@@ -132,23 +151,29 @@ export default function HeroSection() {
 
               {/* Heading */}
               <h1 className="text-5xl lg:text-7xl font-bold text-white leading-tight mb-6 font-display">
-                Model School,
-                <span
-                  className="block"
-                  style={{
-                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  Manvad
-                </span>
+                {headingStr.includes(',') ? (
+                  <>
+                    {headingStr.split(',')[0]},
+                    <span
+                      className="block"
+                      style={{
+                        background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}
+                    >
+                      {headingStr.split(',').slice(1).join(',')}
+                    </span>
+                  </>
+                ) : (
+                  headingStr
+                )}
               </h1>
 
               {/* Subheading */}
               <p className="text-lg lg:text-xl text-white/80 leading-relaxed mb-10 max-w-lg">
-                Quality education for classes 6 to 12. Dedicated to academic excellence and student success.
+                {subtitleStr}
               </p>
 
               {/* CTAs */}

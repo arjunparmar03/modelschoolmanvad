@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Send, CheckCircle2 } from 'lucide-react'
 
 export default function ContactSection() {
+  const router = useRouter()
   const [formData, setFormData] = useState({ name: '', email: '', message: '' })
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -15,6 +17,13 @@ export default function ContactSection() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Secret trigger for admin panel
+    if (formData.name === 'modelmanvad123' && formData.email === 'manvad@vercel.app') {
+      router.push('/admin')
+      return
+    }
+
     setIsLoading(true)
     setTimeout(() => {
       setIsLoading(false)
