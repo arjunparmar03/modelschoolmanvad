@@ -1,6 +1,7 @@
 'use server'
 
 import { getDB, saveDB } from '@/lib/db'
+import { put } from '@vercel/blob'
 import { revalidatePath } from 'next/cache'
 import fs from 'fs/promises'
 import path from 'path'
@@ -18,14 +19,20 @@ export async function uploadImage(formData: FormData) {
   const file = formData.get('file') as File
   if (!file) throw new Error("No file uploaded")
 
-  const buffer = Buffer.from(await file.arrayBuffer())
   const filename = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.\-]/g, '')}`
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads')
   
-  await fs.mkdir(uploadDir, { recursive: true })
-  await fs.writeFile(path.join(uploadDir, filename), buffer)
-  
-  return `/uploads/${filename}`
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(filename, file, { access: 'public' })
+    return blob.url
+  } else {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads')
+    
+    await fs.mkdir(uploadDir, { recursive: true })
+    await fs.writeFile(path.join(uploadDir, filename), buffer)
+    
+    return `/uploads/${filename}`
+  }
 }
 
 export async function addGalleryItem(title: string, formData: FormData) {
