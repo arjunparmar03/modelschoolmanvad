@@ -11,16 +11,16 @@ export async function POST(request: Request) {
     const sessionToken = process.env.ADMIN_SESSION_TOKEN || 'fallback_secret_token_change_me'
 
     if (username === validUsername && password === validPassword) {
-      const cookieStore = await cookies()
-      cookieStore.set('admin_session', sessionToken, {
+      const response = NextResponse.json({ success: true })
+      response.cookies.set('admin_session', sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 60 * 60 * 24, // 24 hours
         path: '/',
       })
       
-      return NextResponse.json({ success: true })
+      return response
     }
 
     return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
