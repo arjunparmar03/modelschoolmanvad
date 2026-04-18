@@ -26,22 +26,34 @@ export default function GalleryEditor() {
     e.preventDefault()
     if (!file || !title) return
     setUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-    await addGalleryItem(title, formData)
-    setFile(null)
-    setTitle('')
-    setUploading(false)
-    loadGallery()
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await addGalleryItem(title, formData)
+      if (res?.error) alert("Upload Error: " + res.error)
+    } catch (err: any) {
+      alert("Error: " + err.message)
+    } finally {
+      setFile(null)
+      setTitle('')
+      setUploading(false)
+      loadGallery()
+    }
   }
 
   const handleDirectUpload = async (categoryTitle: string, selectedFile: File) => {
     setUploadingTitle(categoryTitle)
-    const formData = new FormData()
-    formData.append('file', selectedFile)
-    await addGalleryItem(categoryTitle, formData)
-    setUploadingTitle(null)
-    loadGallery()
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      const res = await addGalleryItem(categoryTitle, formData)
+      if (res?.error) alert("Upload Error: " + res.error)
+    } catch (err: any) {
+      alert("Error: " + err.message)
+    } finally {
+      setUploadingTitle(null)
+      loadGallery()
+    }
   }
 
   const handleDelete = async (catId: string, imgIndex: number) => {

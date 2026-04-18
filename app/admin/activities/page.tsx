@@ -27,23 +27,35 @@ export default function ActivitiesEditor() {
     e.preventDefault()
     if (!file || !title) return
     setUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-    await addActivity(title, desc, formData)
-    setFile(null)
-    setTitle('')
-    setDesc('')
-    setUploading(false)
-    loadActivities()
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await addActivity(title, desc, formData)
+      if (res?.error) alert("Upload Error: " + res.error)
+    } catch (err: any) {
+      alert("Error: " + err.message)
+    } finally {
+      setFile(null)
+      setTitle('')
+      setDesc('')
+      setUploading(false)
+      loadActivities()
+    }
   }
 
   const handleDirectUpload = async (activityTitle: string, selectedFile: File, existDesc: string) => {
     setUploadingTitle(activityTitle)
-    const formData = new FormData()
-    formData.append('file', selectedFile)
-    await addActivity(activityTitle, existDesc, formData)
-    setUploadingTitle(null)
-    loadActivities()
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      const res = await addActivity(activityTitle, existDesc, formData)
+      if (res?.error) alert("Upload Error: " + res.error)
+    } catch (err: any) {
+      alert("Error: " + err.message)
+    } finally {
+      setUploadingTitle(null)
+      loadActivities()
+    }
   }
 
   const handleDeleteImage = async (actId: string, imgIndex: number) => {
