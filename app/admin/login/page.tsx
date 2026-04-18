@@ -24,9 +24,8 @@ export default function AdminLogin() {
       })
       
       if (res.ok) {
-        // Successful login, redirect to dashboard
-        router.push('/admin')
-        router.refresh()
+        // Successful login, force hard redirect to ensure cookies propagate immediately
+        window.location.href = '/admin'
       } else {
         setError('Invalid credentials')
       }
