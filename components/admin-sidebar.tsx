@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+// Removed next/link
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Image as ImageIcon, Calendar, FileText, LogOut } from 'lucide-react'
 
@@ -25,7 +25,7 @@ export default function AdminSidebar() {
           const isActive = link.exact ? pathname === link.href : pathname?.startsWith(link.href)
           
           return (
-            <Link 
+            <a 
               key={link.href}
               href={link.href} 
               className={`flex items-center gap-3 px-3 py-2 rounded-xl font-medium transition-colors ${
@@ -35,14 +35,14 @@ export default function AdminSidebar() {
               }`}
             >
               <Icon size={18} /> {link.label}
-            </Link>
+            </a>
           )
         })}
       </nav>
       <div className="p-4 border-t border-border">
-        <Link href="/api/admin/logout" className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-500 font-medium transition-colors">
+        <a href="/api/admin/logout" className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-500 font-medium transition-colors">
           <LogOut size={18} /> Logout
-        </Link>
+        </a>
       </div>
     </aside>
   )
