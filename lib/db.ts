@@ -1,8 +1,4 @@
-import fs from 'fs/promises'
-import path from 'path'
-import { kv } from '@vercel/kv'
-
-export const DB_PATH = path.join(process.cwd(), 'data', 'db.json')
+import { supabase } from './supabase'
 
 export const defaultDB = {
   content: {
@@ -134,31 +130,23 @@ export const defaultDB = {
   ]
 }
 
+// ─── Read data from Supabase ───────────────────────────────────────────────
 export async function getDB() {
-  let parsed
+  const { data, error } = await supabase
+    .from('cms_data')
+    .select('value')
+    .eq('key', 'main')
+    .single()
 
-  if (process.env.KV_REST_API_URL) {
-    try {
-      const data = await kv.get('cms_data')
-      if (data) parsed = data
-    } catch (e) {
-      console.log('KV Error', e)
-    }
+  if (error || !data) {
+    // First time: seed the default data into Supabase
+    await saveDB(defaultDB)
+    return defaultDB
   }
 
-  if (!parsed) {
-    try {
-      const data = await fs.readFile(DB_PATH, 'utf-8')
-      parsed = JSON.parse(data)
-    } catch (error) {
-      await fs.mkdir(path.dirname(DB_PATH), { recursive: true })
-      await fs.writeFile(DB_PATH, JSON.stringify(defaultDB, null, 2))
-      parsed = defaultDB
-      if (process.env.KV_REST_API_URL) await kv.set('cms_data', parsed)
-    }
-  }
+  const parsed = data.value as any
 
-  // Migration: if they are still on the flat gallery/events model
+  // Migration: if still on old flat gallery/events model
   if (!parsed.galleryCategories) {
     parsed.galleryCategories = defaultDB.galleryCategories
     parsed.activities = defaultDB.activities
@@ -167,22 +155,16 @@ export async function getDB() {
     await saveDB(parsed)
   }
 
-  // Auto-patch missing categories from earlier truncations seamlessly
-  if (parsed.galleryCategories && !parsed.galleryCategories.find((c: any) => c.id === 'playroom')) {
-    const missingIds = ['playroom', 'classroom', 'drawing', 'atal', 'vocational', 'corridor', 'prayer', 'greenSchool']
-    const missingCats = defaultDB.galleryCategories.filter(c => missingIds.includes(c.id))
-    parsed.galleryCategories.push(...missingCats)
-    await saveDB(parsed)
-  }
-
   return parsed
 }
 
+// ─── Write data to Supabase ────────────────────────────────────────────────
 export async function saveDB(data: any) {
-  if (process.env.KV_REST_API_URL) {
-    await kv.set('cms_data', data)
-  } else {
-    await fs.mkdir(path.dirname(DB_PATH), { recursive: true })
-    await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2))
+  const { error } = await supabase
+    .from('cms_data')
+    .upsert({ key: 'main', value: data }, { onConflict: 'key' })
+
+  if (error) {
+    throw new Error(`Failed to save to Supabase: ${error.message}`)
   }
 }

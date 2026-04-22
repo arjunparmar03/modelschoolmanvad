@@ -18,11 +18,6 @@ export default function ContactSection() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Secret trigger for admin panel
-    if (formData.name === 'modelmanvad123' && formData.email === 'manvad@vercel.app') {
-      router.push('/admin')
-      return
-    }
 
     setIsLoading(true)
     setTimeout(() => {

@@ -165,6 +165,9 @@ export default function Footer() {
               <Link href="/contact" className="hover:text-primary-foreground/80 transition-colors duration-200">
                 Contact
               </Link>
+              <Link href="/admin" className="hover:text-primary-foreground/80 transition-colors duration-200">
+                Admin Section
+              </Link>
             </div>
           </div>
         </div>

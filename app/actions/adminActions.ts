@@ -1,10 +1,8 @@
 'use server'
 
 import { getDB, saveDB } from '@/lib/db'
-import { put } from '@vercel/blob'
+import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
-import fs from 'fs/promises'
-import path from 'path'
 import crypto from 'crypto'
 
 export async function updateContent(content: any) {
@@ -19,32 +17,39 @@ export async function updateContent(content: any) {
   }
 }
 
-export async function uploadImage(formData: FormData) {
+// ─── Upload image to Supabase Storage ─────────────────────────────────────
+export async function uploadImage(formData: FormData): Promise<string> {
   const file = formData.get('file') as File
-  if (!file) throw new Error("No file uploaded")
+  if (!file) throw new Error('No file uploaded')
 
-  const filename = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.\-]/g, '')}`
-  
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(filename, file, { access: 'public' })
-    return blob.url
-  } else {
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads')
-    
-    await fs.mkdir(uploadDir, { recursive: true })
-    await fs.writeFile(path.join(uploadDir, filename), buffer)
-    
-    return `/uploads/${filename}`
-  }
+  const ext = file.name.split('.').pop()
+  const filename = `${crypto.randomUUID()}.${ext}`
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  const { error } = await supabase.storage
+    .from('school-images')          // ← your Supabase Storage bucket name
+    .upload(filename, buffer, {
+      contentType: file.type,
+      upsert: false,
+    })
+
+  if (error) throw new Error(`Image upload failed: ${error.message}`)
+
+  const { data } = supabase.storage
+    .from('school-images')
+    .getPublicUrl(filename)
+
+  return data.publicUrl
 }
 
 export async function addGalleryItem(title: string, formData: FormData) {
   try {
     const src = await uploadImage(formData)
     const db = await getDB()
-    
-    const existingCat = db.galleryCategories.find((c: any) => c.title.trim().toLowerCase() === title.trim().toLowerCase())
+
+    const existingCat = db.galleryCategories.find(
+      (c: any) => c.title.trim().toLowerCase() === title.trim().toLowerCase()
+    )
     if (existingCat) {
       existingCat.images.push({ src, alt: title })
     } else {
@@ -52,10 +57,10 @@ export async function addGalleryItem(title: string, formData: FormData) {
         id: crypto.randomUUID(),
         title,
         thumbnail: src,
-        images: [{ src, alt: title }]
+        images: [{ src, alt: title }],
       })
     }
-    
+
     await saveDB(db)
     revalidatePath('/')
     return { success: true }
@@ -88,8 +93,10 @@ export async function addActivity(title: string, description: string, formData: 
   try {
     const src = await uploadImage(formData)
     const db = await getDB()
-    
-    const existingAct = db.activities.find((a: any) => a.title.trim().toLowerCase() === title.trim().toLowerCase())
+
+    const existingAct = db.activities.find(
+      (a: any) => a.title.trim().toLowerCase() === title.trim().toLowerCase()
+    )
     if (existingAct) {
       existingAct.images.push({ src, alt: title })
       if (description) existingAct.description = description
@@ -99,10 +106,10 @@ export async function addActivity(title: string, description: string, formData: 
         title,
         description,
         thumbnail: src,
-        images: [{ src, alt: title }]
+        images: [{ src, alt: title }],
       })
     }
-    
+
     await saveDB(db)
     revalidatePath('/')
     return { success: true }
