@@ -26,20 +26,39 @@ export async function uploadImage(formData: FormData): Promise<string> {
   const filename = `${crypto.randomUUID()}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  const { error } = await supabase.storage
+  let { data, error } = await supabase.storage
     .from('school-images')          // ← your Supabase Storage bucket name
     .upload(filename, buffer, {
       contentType: file.type,
       upsert: false,
     })
 
+  if (error && error.message && error.message.includes('Bucket not found')) {
+    // Try to create the bucket if it does not exist
+    await supabase.storage.createBucket('school-images', {
+      public: true,
+      fileSizeLimit: 5242880, // 5MB limit
+    });
+
+    // Retry upload
+    const retryResult = await supabase.storage
+      .from('school-images')
+      .upload(filename, buffer, {
+        contentType: file.type,
+        upsert: false,
+      })
+      
+    error = retryResult.error;
+    data = retryResult.data;
+  }
+
   if (error) throw new Error(`Image upload failed: ${error.message}`)
 
-  const { data } = supabase.storage
+  const { data: publicUrlData } = supabase.storage
     .from('school-images')
     .getPublicUrl(filename)
 
-  return data.publicUrl
+  return publicUrlData.publicUrl
 }
 
 export async function addGalleryItem(title: string, formData: FormData) {

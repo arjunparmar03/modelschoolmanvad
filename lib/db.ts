@@ -132,30 +132,49 @@ export const defaultDB = {
 
 // ─── Read data from Supabase ───────────────────────────────────────────────
 export async function getDB() {
-  const { data, error } = await supabase
-    .from('cms_data')
-    .select('value')
-    .eq('key', 'main')
-    .single()
+  try {
+    const { data, error } = await supabase
+      .from('cms_data')
+      .select('value')
+      .eq('key', 'main')
+      .single()
 
-  if (error || !data) {
-    // First time: seed the default data into Supabase
-    await saveDB(defaultDB)
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No data found, this is okay for first-time setup
+        console.log('No CMS data found in Supabase. Seeding default data...')
+        await saveDB(defaultDB)
+        return defaultDB
+      }
+      
+      // If the table doesn't exist, we'll get a specific error
+      if (error.message.includes('relation "cms_data" does not exist')) {
+        console.error('CRITICAL: Table "cms_data" does not exist in Supabase. Please run the SQL setup script.')
+        return defaultDB // Fallback to default but log the error
+      }
+
+      console.error('Supabase fetch error:', error.message)
+      return defaultDB
+    }
+
+    if (!data) return defaultDB
+
+    const parsed = data.value as any
+
+    // Migration: if still on old flat gallery/events model
+    if (!parsed.galleryCategories) {
+      parsed.galleryCategories = defaultDB.galleryCategories
+      parsed.activities = defaultDB.activities
+      delete parsed.gallery
+      delete parsed.events
+      await saveDB(parsed)
+    }
+
+    return parsed
+  } catch (err: any) {
+    console.error('Unexpected error in getDB:', err.message)
     return defaultDB
   }
-
-  const parsed = data.value as any
-
-  // Migration: if still on old flat gallery/events model
-  if (!parsed.galleryCategories) {
-    parsed.galleryCategories = defaultDB.galleryCategories
-    parsed.activities = defaultDB.activities
-    delete parsed.gallery
-    delete parsed.events
-    await saveDB(parsed)
-  }
-
-  return parsed
 }
 
 // ─── Write data to Supabase ────────────────────────────────────────────────
@@ -165,6 +184,7 @@ export async function saveDB(data: any) {
     .upsert({ key: 'main', value: data }, { onConflict: 'key' })
 
   if (error) {
+    console.error('Supabase save error:', error.message)
     throw new Error(`Failed to save to Supabase: ${error.message}`)
   }
 }
