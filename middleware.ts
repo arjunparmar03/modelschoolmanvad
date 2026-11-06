@@ -1,35 +1,50 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { updateSession } from '@/utils/supabase/middleware'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Exclude public files from middleware to save edge runs
+  // Exclude static assets from middleware to save edge runs
   if (pathname.includes('.')) return NextResponse.next()
 
-  // Protect all /admin routes except /admin/login
+  // 1. Refresh Supabase session and retrieve authenticated user
+  const { supabaseResponse, user } = await updateSession(request)
+
+  const isAdmin = Boolean(user && user.app_metadata?.role === 'admin')
+
+  // 2. Protect all /admin routes except /admin/login
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    const token = request.cookies.get('admin_session')?.value
-    const validToken = process.env.ADMIN_SESSION_TOKEN || 'fallback_secret_token_change_me'
-    
-    if (!token || token !== validToken) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
+    if (!isAdmin) {
+      const redirectUrl = new URL('/admin/login', request.url)
+      const redirectResponse = NextResponse.redirect(redirectUrl)
+      
+      // Preserve any refreshed or cleared session cookies on the redirect response
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+      })
+      
+      return redirectResponse
     }
   }
 
-  // Protect all /api/admin routes except /login
-  if (pathname.startsWith('/api/admin') && pathname !== '/api/admin/login') {
-    const token = request.cookies.get('admin_session')?.value
-    const validToken = process.env.ADMIN_SESSION_TOKEN || 'fallback_secret_token_change_me'
-    
-    if (!token || token !== validToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // 3. Protect all /api/admin routes except /api/admin/login and /api/admin/logout
+  if (
+    pathname.startsWith('/api/admin') &&
+    pathname !== '/api/admin/login' &&
+    pathname !== '/api/admin/logout'
+  ) {
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized: Admin privileges required' }, { status: 401 })
     }
   }
 
-  return NextResponse.next()
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/api/admin/:path*',
+  ],
 }

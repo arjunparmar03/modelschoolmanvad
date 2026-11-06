@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { PlusCircle, Trash2, UploadCloud, Image as ImageIcon, Plus } from 'lucide-react'
 import Image from 'next/image'
-import { addActivity, deleteActivityImage } from '@/app/actions/adminActions'
+import { addActivity, deleteActivityImage, deleteActivity } from '@/app/actions/adminActions'
+import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
 
 export default function ActivitiesEditor() {
   const [activities, setActivities] = useState<any[]>([])
@@ -58,9 +59,17 @@ export default function ActivitiesEditor() {
     }
   }
 
-  const handleDeleteImage = async (actId: string, imgIndex: number) => {
-    if (!confirm('Delete this photo? If it is the last photo, the entire activity will be removed.')) return
-    await deleteActivityImage(actId, imgIndex)
+  const handleDeleteImage = async (imageIdOrActId: string, imgIndex?: number) => {
+    if (!confirm('Delete this photo?')) return
+    const res = await deleteActivityImage(imageIdOrActId, imgIndex)
+    if (res?.error) alert("Delete Error: " + res.error)
+    loadActivities()
+  }
+
+  const handleDeleteActivity = async (actId: string, actTitle: string) => {
+    if (!confirm(`Delete entire activity "${actTitle}" and all of its photos? This action cannot be undone.`)) return
+    const res = await deleteActivity(actId)
+    if (res?.error) alert("Delete Error: " + res.error)
     loadActivities()
   }
 
@@ -107,6 +116,11 @@ export default function ActivitiesEditor() {
               </div>
             </div>
           </div>
+          {file && (
+            <div className="pt-2 border-t border-border/40">
+              <AdminOptimizationPreview file={file} onClear={() => setFile(null)} context="activities" />
+            </div>
+          )}
           <div className="flex justify-end">
             <button type="submit" disabled={uploading || !file || !title} className="px-6 py-2.5 rounded-xl btn-shimmer bg-primary text-primary-foreground font-semibold shadow-lg">
               {uploading ? 'Uploading...' : 'Save Activity Photo'}
@@ -118,16 +132,26 @@ export default function ActivitiesEditor() {
       <div className="space-y-6 max-w-5xl">
         {loading ? <p>Loading...</p> : activities.map((act) => (
           <div key={act.id} className="glass-card p-6 border border-border/50">
-            <div className="mb-4">
-              <h3 className="font-bold text-xl">{act.title}</h3>
-              <p className="text-sm text-foreground/60 mt-1">{act.description}</p>
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-xl">{act.title}</h3>
+                <p className="text-sm text-foreground/60 mt-1">{act.description}</p>
+              </div>
+              <button
+                onClick={() => handleDeleteActivity(act.id, act.title)}
+                className="p-2 text-foreground/40 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20 text-xs flex items-center gap-1.5 shrink-0"
+                title="Delete Activity"
+              >
+                <Trash2 size={15} />
+                <span className="hidden sm:inline">Delete Activity</span>
+              </button>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
               {act.images.map((img: any, idx: number) => (
-                <div key={idx} className="group relative aspect-square rounded-xl overflow-hidden bg-black/5 border border-border/50">
+                <div key={img.id || idx} className="group relative aspect-square rounded-xl overflow-hidden bg-black/5 border border-border/50">
                   <Image src={img.src} alt={img.alt} fill className="object-cover" />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-sm p-4 text-center">
-                    <button onClick={() => handleDeleteImage(act.id, idx)} className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/30" title="Delete">
+                    <button onClick={() => handleDeleteImage(img.id || act.id, idx)} className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/30" title="Delete">
                       <Trash2 size={16} />
                     </button>
                   </div>

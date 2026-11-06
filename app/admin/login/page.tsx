@@ -1,36 +1,44 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Lock } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    
+
     try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+      const supabase = createClient()
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
       })
-      
-      if (res.ok) {
-        // Successful login, force hard redirect to ensure cookies propagate immediately
-        window.location.href = '/admin'
-      } else {
-        setError('Invalid credentials')
+
+      if (signInError) {
+        setError(signInError.message || 'Invalid email or password.')
+        return
       }
-    } catch (err) {
-      setError('An error occurred. Try again.')
+
+      // Verify authorized admin role from trusted app_metadata
+      if (data.user?.app_metadata?.role !== 'admin') {
+        // Immediately terminate session if user is not authorized admin
+        await supabase.auth.signOut()
+        setError('Access denied: Administrator privileges required.')
+        return
+      }
+
+      // Hard redirect to propagate refreshed cookies immediately to Server Components & Middleware
+      window.location.href = '/admin'
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -51,13 +59,15 @@ export default function AdminLogin() {
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1.5 text-foreground/80">Username</label>
+            <label className="block text-sm font-medium mb-1.5 text-foreground/80">Email</label>
             <input 
               type="text" 
               required
+              autoComplete="email"
+              placeholder="admin@modelschoolmanvad.com"
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
@@ -65,6 +75,7 @@ export default function AdminLogin() {
             <input 
               type="password" 
               required
+              autoComplete="current-password"
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

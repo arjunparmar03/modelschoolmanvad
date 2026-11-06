@@ -1,6 +1,52 @@
-import { supabase } from './supabase'
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LOCAL CMS DATA ADAPTER (TEMPORARY)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * The old Supabase integration has been cleanly detached to prepare for connecting
+ * a brand-new Supabase project.
+ *
+ * This local adapter provides in-memory CMS state initialized from defaultDB.
+ * Public pages and admin CMS interfaces continue to function without errors.
+ *
+ * NOTICE: Any modifications made through the admin panel while this adapter is
+ * active are retained in local runtime state and are NOT permanently persisted
+ * to a cloud database until a fresh Supabase integration is attached.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 
-export const defaultDB = {
+export interface GalleryImage {
+  src: string
+  alt: string
+}
+
+export interface GalleryCategory {
+  id: string
+  title: string
+  thumbnail: string
+  images: GalleryImage[]
+}
+
+export interface Activity {
+  id: string
+  title: string
+  description?: string
+  thumbnail: string
+  images: GalleryImage[]
+}
+
+export interface SiteContent {
+  heroHeading: string
+  heroSubtitle: string
+  email: string
+}
+
+export interface CMSDatabase {
+  content: SiteContent
+  galleryCategories: GalleryCategory[]
+  activities: Activity[]
+}
+
+export const defaultDB: CMSDatabase = {
   content: {
     heroHeading: "Model School, Manvad",
     heroSubtitle: "Quality education for classes 6 to 12. Dedicated to academic excellence and student success.",
@@ -130,61 +176,26 @@ export const defaultDB = {
   ]
 }
 
-// ─── Read data from Supabase ───────────────────────────────────────────────
-export async function getDB() {
-  try {
-    const { data, error } = await supabase
-      .from('cms_data')
-      .select('value')
-      .eq('key', 'main')
-      .single()
+// Runtime in-memory store initialized with a deep clone of defaultDB
+let localCMSStore: CMSDatabase = JSON.parse(JSON.stringify(defaultDB))
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No data found, this is okay for first-time setup
-        console.log('No CMS data found in Supabase. Seeding default data...')
-        await saveDB(defaultDB)
-        return defaultDB
-      }
-      
-      // If the table doesn't exist, we'll get a specific error
-      if (error.message.includes('relation "cms_data" does not exist')) {
-        console.error('CRITICAL: Table "cms_data" does not exist in Supabase. Please run the SQL setup script.')
-        return defaultDB // Fallback to default but log the error
-      }
-
-      console.error('Supabase fetch error:', error.message)
-      return defaultDB
-    }
-
-    if (!data) return defaultDB
-
-    const parsed = data.value as any
-
-    // Migration: if still on old flat gallery/events model
-    if (!parsed.galleryCategories) {
-      parsed.galleryCategories = defaultDB.galleryCategories
-      parsed.activities = defaultDB.activities
-      delete parsed.gallery
-      delete parsed.events
-      await saveDB(parsed)
-    }
-
-    return parsed
-  } catch (err: any) {
-    console.error('Unexpected error in getDB:', err.message)
-    return defaultDB
-  }
+/**
+ * Read CMS data.
+ * Returns local CMS data.
+ */
+export async function getDB(): Promise<CMSDatabase> {
+  return localCMSStore
 }
 
-// ─── Write data to Supabase ────────────────────────────────────────────────
-export async function saveDB(data: any) {
-  const { error } = await supabase
-    .from('cms_data')
-    .upsert({ key: 'main', value: data }, { onConflict: 'key' })
-
-  if (error) {
-    console.error('Supabase save error:', error.message)
-    throw new Error(`Failed to save to Supabase: ${error.message}`)
+/**
+ * Write CMS data.
+ * Updates local CMS data in memory.
+ * Note: Data is not permanently stored to a remote database until a new Supabase project is connected.
+ */
+export async function saveDB(data: any): Promise<void> {
+  localCMSStore = {
+    ...localCMSStore,
+    ...data,
   }
+  console.log('[LOCAL ADAPTER] CMS data updated in local memory. (Supabase is disconnected; changes are not permanently saved).')
 }

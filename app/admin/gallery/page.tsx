@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { UploadCloud, Image as ImageIcon, Trash2, Plus } from 'lucide-react'
 import Image from 'next/image'
 import { addGalleryItem, deleteGalleryImage } from '@/app/actions/adminActions'
+import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
 
 export default function GalleryEditor() {
   const [categories, setCategories] = useState<any[]>([])
@@ -56,9 +57,12 @@ export default function GalleryEditor() {
     }
   }
 
-  const handleDelete = async (catId: string, imgIndex: number) => {
+  const handleDelete = async (imageIdOrCatId: string, imgIndex?: number) => {
     if (!confirm('Delete this photo? If it is the last photo, the category will be removed.')) return
-    await deleteGalleryImage(catId, imgIndex)
+    const res = await deleteGalleryImage(imageIdOrCatId, imgIndex)
+    if (res?.error) {
+      alert("Delete Error: " + res.error)
+    }
     loadGallery()
   }
 
@@ -98,6 +102,12 @@ export default function GalleryEditor() {
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
         </form>
+
+        {file && (
+          <div className="mt-5 pt-4 border-t border-border/40">
+            <AdminOptimizationPreview file={file} onClear={() => setFile(null)} context="gallery" />
+          </div>
+        )}
       </div>
 
       <div className="space-y-6 max-w-5xl text-left">
@@ -111,7 +121,7 @@ export default function GalleryEditor() {
                 <div key={idx} className="group relative aspect-square rounded-xl overflow-hidden bg-black/5 border border-border/50">
                   <Image src={img.src} alt={img.alt} fill className="object-cover" />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-sm p-4 text-center">
-                    <button onClick={() => handleDelete(cat.id, idx)} className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/30" title="Delete">
+                    <button onClick={() => handleDelete(img.id || cat.id, idx)} className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/30" title="Delete">
                       <Trash2 size={16} />
                     </button>
                   </div>

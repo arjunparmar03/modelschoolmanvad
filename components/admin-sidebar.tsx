@@ -2,13 +2,14 @@
 
 // Removed next/link
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Image as ImageIcon, Calendar, FileText, LogOut } from 'lucide-react'
+import { LayoutDashboard, Image as ImageIcon, Calendar, Bell, FileText, LogOut } from 'lucide-react'
 
 export default function AdminSidebar() {
   const pathname = usePathname()
 
   const links = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+    { href: '/admin/notices', label: 'Notices', icon: Bell },
     { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
     { href: '/admin/activities', label: 'Activities', icon: Calendar },
     { href: '/admin/content', label: 'Content', icon: FileText },

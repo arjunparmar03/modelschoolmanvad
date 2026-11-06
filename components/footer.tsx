@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Instagram, Facebook, Youtube, Mail, MapPin, Clock } from 'lucide-react'
 
 const quickLinks = [
+  { href: '/notices', label: 'School Notices' },
   { href: '/academics', label: 'Academic Programs' },
   { href: '/campus', label: 'Campus Tours' },
   { href: '/contact', label: 'Admissions' },
