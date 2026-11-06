@@ -1080,6 +1080,55 @@ export async function uploadNoticeAttachment(noticeId: string, formData: FormDat
 }
 
 /**
+ * Registers an attachment record for files uploaded directly to Supabase Storage.
+ * Essential for large files (> 4MB) to safely bypass Vercel serverless function body size limits.
+ */
+export async function registerNoticeAttachmentRecord(data: {
+  noticeId: string
+  filePath: string
+  fileName: string
+  fileType: 'pdf' | 'image'
+  fileSize: number
+}) {
+  try {
+    await requireAdmin()
+    const supabase = await createClient()
+
+    const attachmentId = crypto.randomUUID()
+    const stableDownloadUrl = `/api/notices/download/${attachmentId}`
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('notice_attachments')
+      .insert({
+        id: attachmentId,
+        notice_id: data.noticeId,
+        file_path: data.filePath,
+        file_url: stableDownloadUrl,
+        file_name: data.fileName,
+        file_type: data.fileType,
+        file_size: data.fileSize,
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('[registerNoticeAttachmentRecord Error]:', insertError)
+      throw new Error(`Failed to record attachment: ${insertError.message}`)
+    }
+
+    revalidatePath('/')
+    revalidatePath('/notices')
+    revalidatePath('/admin/notices')
+    revalidateTag('public-notices', 'default')
+
+    return { success: true, data: inserted }
+  } catch (error: any) {
+    console.error('[registerNoticeAttachmentRecord Exception]:', error)
+    return { success: false, error: error.message || String(error) }
+  }
+}
+
+/**
  * Deletes a single notice attachment by ID.
  * Database-first deletion followed by Storage cleanup with reliable error logging.
  */

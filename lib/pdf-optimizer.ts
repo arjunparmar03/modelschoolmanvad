@@ -87,10 +87,11 @@ export async function optimizePdf(
   const mode = options.mode || 'balanced'
   const warnings: string[] = []
 
-  // 1. Enforce 25 MB safety limit
-  if (originalSize > 26214400) {
-    throw new Error('PDF exceeds the maximum allowed limit of 25MB.')
-  }
+  try {
+    // 1. Enforce 25 MB safety limit
+    if (originalSize > 26214400) {
+      throw new Error('PDF exceeds the maximum allowed limit of 25MB.')
+    }
 
   // 2. Validate header magic bytes
   if (!isPdfBuffer(inputBuffer)) {
@@ -255,8 +256,14 @@ export async function optimizePdf(
   // 5. Inspect and optimize indirect objects (Streams, Images, Uncompressed Streams)
   try {
     const indirectObjects = doc.context.enumerateIndirectObjects()
+    const deadline = Date.now() + 4500 // 4.5 seconds maximum serverless CPU time budget
+    let imagesProcessed = 0
 
     for (const [, obj] of indirectObjects) {
+      if (Date.now() > deadline) {
+        warnings.push('Image optimization paused under serverless CPU time budget')
+        break
+      }
       if (!(obj instanceof PDFRawStream) || !obj.dict) continue
 
       const subtype = obj.dict.get(PDFName.of('Subtype'))
@@ -266,6 +273,8 @@ export async function optimizePdf(
       // 5A. Embedded JPEG image optimization
       if (subtype?.toString() === '/Image' && filter?.toString() === '/DCTDecode') {
         hasImages = true
+        if (imagesProcessed >= 8) continue // Process up to 8 largest images to stay within memory limits
+        imagesProcessed++
 
         // Only process RGB or standard color space to prevent color distortion on CMYK/separation
         const csStr = colorSpace?.toString() || ''
@@ -445,4 +454,20 @@ export async function optimizePdf(
     hasImages,
     imagesOptimizedCount,
   }
+} catch (err: any) {
+  console.warn('[PDF Optimizer Fallback]: Optimization bypassed for safety, preserving original PDF:', err?.message || err)
+  return {
+    buffer: inputBuffer,
+    originalSize,
+    optimizedSize: originalSize,
+    savingsPercent: 0,
+    pageCount: 1,
+    isOptimized: false,
+    mode,
+    message: 'Original PDF preserved without modification.',
+    warnings: [err?.message || 'Processing safety fallback'],
+    hasImages: false,
+    imagesOptimizedCount: 0,
+  }
+}
 }

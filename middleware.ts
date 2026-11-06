@@ -8,6 +8,9 @@ export async function middleware(request: NextRequest) {
   // Exclude static assets from middleware to save edge runs
   if (pathname.includes('.')) return NextResponse.next()
 
+  // Exclude file analysis and upload endpoints from edge middleware body inspection
+  if (pathname === '/api/admin/optimize-preview') return NextResponse.next()
+
   // 1. Refresh Supabase session and retrieve authenticated user
   const { supabaseResponse, user } = await updateSession(request)
 

@@ -30,7 +30,9 @@ import {
   deleteNotice,
   uploadNoticeAttachment,
   deleteNoticeAttachment,
+  registerNoticeAttachmentRecord,
 } from '@/app/actions/adminActions'
+import { createClient as createBrowserClient } from '@/utils/supabase/client'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
 
 function formatFileSize(bytes: number | null): string {
@@ -152,23 +154,77 @@ export default function AdminNoticesPage() {
 
     try {
       setIsSubmitting(true)
-      const formData = new FormData()
-      formData.append('title', createForm.title.trim())
-      formData.append('description', createForm.description.trim())
-      formData.append('notice_type', createForm.notice_type)
-      formData.append('publish_date', createForm.publish_date || getTodayIST())
+      const metaFormData = new FormData()
+      metaFormData.append('title', createForm.title.trim())
+      metaFormData.append('description', createForm.description.trim())
+      metaFormData.append('notice_type', createForm.notice_type)
+      metaFormData.append('publish_date', createForm.publish_date || getTodayIST())
       if (createForm.expiry_date) {
-        formData.append('expiry_date', createForm.expiry_date)
+        metaFormData.append('expiry_date', createForm.expiry_date)
       }
-      formData.append('is_published', createForm.is_published ? 'true' : 'false')
+      metaFormData.append('is_published', createForm.is_published ? 'true' : 'false')
 
-      for (const file of selectedFiles) {
-        formData.append('files', file)
-      }
-
-      const res = await createNotice(formData)
-      if (!res.success) {
+      // 1. Create notice metadata first (fast, lightweight request that never hits serverless body limits)
+      const res = await createNotice(metaFormData)
+      if (!res.success || !res.noticeId) {
         throw new Error(res.error || 'Failed to create notice.')
+      }
+
+      const noticeId = res.noticeId
+
+      // 2. Upload attachments individually with automatic direct-storage fallback for large files
+      if (selectedFiles.length > 0) {
+        const supabase = createBrowserClient()
+
+        for (const file of selectedFiles) {
+          let uploadedSuccessfully = false
+
+          // If file <= 4MB, attempt server-side optimization upload
+          if (file.size <= 4 * 1024 * 1024) {
+            try {
+              const fileFormData = new FormData()
+              fileFormData.append('file', file)
+              const attachRes = await uploadNoticeAttachment(noticeId, fileFormData)
+              if (attachRes.success) {
+                uploadedSuccessfully = true
+              }
+            } catch (serverErr) {
+              console.warn('[Server upload failed, falling back to direct Storage upload]:', serverErr)
+            }
+          }
+
+          // If file > 4MB (or server action failed/timed out), upload directly to Supabase Storage
+          if (!uploadedSuccessfully) {
+            const ext = file.name.split('.').pop()?.toLowerCase() || 'bin'
+            const fileType = ext === 'pdf' ? 'pdf' : 'image'
+            const fileId = crypto.randomUUID()
+            const storagePath = `notices/${noticeId}/${fileId}.${ext}`
+
+            const { error: uploadErr } = await supabase.storage
+              .from('school-notices')
+              .upload(storagePath, file, {
+                contentType: file.type || (fileType === 'pdf' ? 'application/pdf' : 'image/jpeg'),
+                upsert: false,
+              })
+
+            if (uploadErr) {
+              console.error('[Direct Storage Upload Error]:', uploadErr)
+              throw new Error(`Failed to upload "${file.name}": ${uploadErr.message}`)
+            }
+
+            const recordRes = await registerNoticeAttachmentRecord({
+              noticeId,
+              filePath: storagePath,
+              fileName: file.name,
+              fileType,
+              fileSize: file.size,
+            })
+
+            if (!recordRes.success) {
+              throw new Error(`Failed to record attachment "${file.name}": ${recordRes.error}`)
+            }
+          }
+        }
       }
 
       // Reset and close
@@ -184,7 +240,7 @@ export default function AdminNoticesPage() {
       setShowCreateModal(false)
       loadAdminNotices()
     } catch (err: any) {
-      alert('Error creating notice: ' + err.message)
+      alert('Error creating notice: ' + (err.message || 'Server connection error'))
     } finally {
       setIsSubmitting(false)
     }

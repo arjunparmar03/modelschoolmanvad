@@ -3,6 +3,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '25mb',
+    },
+    proxyClientMaxBodySize: '25mb',
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
