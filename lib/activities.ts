@@ -1,4 +1,5 @@
-import { createClient } from '@/utils/supabase/server'
+import { unstable_cache } from 'next/cache'
+import { createPublicClient } from '@/utils/supabase/server'
 import { defaultDB } from '@/lib/db'
 
 export interface ActivityImageItem {
@@ -47,7 +48,7 @@ function getDefaultActivities(): ActivityGroup[] {
  */
 export async function getActivities(): Promise<ActivityGroup[]> {
   try {
-    const supabase = await createClient()
+    const supabase = createPublicClient()
 
     const { data, error } = await supabase
       .from('activities')
@@ -111,4 +112,17 @@ export async function getActivities(): Promise<ActivityGroup[]> {
     return getDefaultActivities()
   }
 }
+
+/**
+ * Server-cached activities list for public campus pages.
+ * Revalidated via tag 'campus-activities' upon admin activity modifications.
+ */
+export const getCachedActivities = unstable_cache(
+  async () => getActivities(),
+  ['campus-activities-list'],
+  {
+    revalidate: 300,
+    tags: ['campus-activities'],
+  }
+)
 

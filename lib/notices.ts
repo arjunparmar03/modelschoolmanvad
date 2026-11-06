@@ -1,8 +1,10 @@
-import { createClient } from '@/utils/supabase/server'
+import { unstable_cache } from 'next/cache'
+import { createClient, createPublicClient } from '@/utils/supabase/server'
 import {
   Notice,
   NoticeAttachment,
   NoticeCategory,
+  NoticePreviewItem,
   NOTICE_CATEGORIES,
   getTodayIST,
   isNoticeNew,
@@ -243,4 +245,70 @@ export async function getAllNoticesAdmin(): Promise<Notice[]> {
     throw err
   }
 }
+
+/**
+ * Fast database query for homepage notice previews.
+ * Fetches only lightweight public notice metadata and attachment counts.
+ * Deliberately excludes private signed URL generation to allow fast edge/server caching
+ * and eliminate unneeded Storage roundtrips.
+ */
+async function fetchLatestNoticesFromDB(limit: number = 3): Promise<NoticePreviewItem[]> {
+  try {
+    const supabase = createPublicClient()
+    const todayIST = getTodayIST()
+
+    const { data, error } = await supabase
+      .from('notices')
+      .select(`
+        id,
+        title,
+        description,
+        notice_type,
+        publish_date,
+        created_at,
+        notice_attachments ( id )
+      `)
+      .eq('is_published', true)
+      .lte('publish_date', todayIST)
+      .or(`expiry_date.is.null,expiry_date.gte.${todayIST}`)
+      .order('publish_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('[fetchLatestNoticesFromDB Error]:', error.message)
+      return []
+    }
+
+    if (!data || data.length === 0) {
+      return []
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      notice_type: row.notice_type as NoticeCategory,
+      publish_date: row.publish_date,
+      is_new: isNoticeNew(row.publish_date),
+      attachment_count: Array.isArray(row.notice_attachments) ? row.notice_attachments.length : 0,
+    }))
+  } catch (err: any) {
+    console.error('[fetchLatestNoticesFromDB Exception]:', err?.message || err)
+    return []
+  }
+}
+
+/**
+ * Server-cached latest notices preview for the homepage.
+ * Tagged with 'public-notices' for instant revalidation on admin mutations.
+ */
+export const getLatestNoticesPreview = unstable_cache(
+  async (limit: number = 3) => fetchLatestNoticesFromDB(limit),
+  ['latest-notices-preview'],
+  {
+    revalidate: 300,
+    tags: ['public-notices'],
+  }
+)
 

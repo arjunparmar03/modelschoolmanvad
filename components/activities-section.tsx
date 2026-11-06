@@ -3,19 +3,26 @@
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { X, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
+import type { ActivityGroup } from '@/lib/activities'
 
+interface ActivitiesSectionProps {
+  initialActivities?: ActivityGroup[]
+}
 
-
-export default function ActivitiesSection() {
+export default function ActivitiesSection({ initialActivities }: ActivitiesSectionProps = {}) {
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [dynamicActivities, setDynamicActivities] = useState<any[]>([])
+  const [dynamicActivities, setDynamicActivities] = useState<any[]>(
+    initialActivities && initialActivities.length > 0 ? initialActivities : []
+  )
 
   useEffect(() => {
-    fetch('/api/cms').then(r => r.json()).then(data => {
-      if (data?.activities?.length) setDynamicActivities(data.activities)
-    }).catch(e => console.log(e))
-  }, [])
+    if (!initialActivities || initialActivities.length === 0) {
+      fetch('/api/cms').then(r => r.json()).then(data => {
+        if (data?.activities?.length) setDynamicActivities(data.activities)
+      }).catch(e => console.log(e))
+    }
+  }, [initialActivities])
 
   const activeData = dynamicActivities.find((a) => a.id === selectedActivity)
   const images = activeData?.images ?? []
@@ -49,7 +56,7 @@ export default function ActivitiesSection() {
 
         {/* Activity Grid */}
         <div className="grid md:grid-cols-3 gap-6">
-          {dynamicActivities.map((act) => (
+          {dynamicActivities.map((act, idx) => (
             <div
               key={act.id}
               className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-2xl hover:shadow-black/20 transition-all duration-400 cursor-pointer h-72 hover:-translate-y-1"
@@ -59,6 +66,9 @@ export default function ActivitiesSection() {
                 src={act.thumbnail || '/placeholder.svg'}
                 alt={act.title}
                 fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                priority={idx < 2}
+                loading={idx < 3 ? 'eager' : 'lazy'}
                 className="object-cover group-hover:scale-108 transition-transform duration-500"
               />
               {/* Gradient overlay */}
@@ -108,6 +118,8 @@ export default function ActivitiesSection() {
                 src={images[currentIndex]?.src || '/placeholder.svg'}
                 alt={images[currentIndex]?.alt || ''}
                 fill
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                priority
                 className="object-contain"
               />
 

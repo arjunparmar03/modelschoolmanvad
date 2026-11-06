@@ -1,9 +1,6 @@
-'use client'
-
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Bell, ArrowRight, Calendar, FileText } from 'lucide-react'
-import { Notice, NoticeCategory, formatISTDate } from '@/lib/notices-types'
+import { NoticePreviewItem, NoticeCategory, formatISTDate } from '@/lib/notices-types'
 
 function getCategoryColor(category: NoticeCategory | string) {
   switch (category) {
@@ -21,28 +18,13 @@ function getCategoryColor(category: NoticeCategory | string) {
   }
 }
 
-export default function LatestNoticesPreview() {
-  const [notices, setNotices] = useState<Notice[]>([])
-  const [loading, setLoading] = useState(true)
+interface LatestNoticesPreviewProps {
+  notices: NoticePreviewItem[]
+}
 
-  useEffect(() => {
-    fetch('/api/notices?limit=3', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => {
-        if (data?.notices) {
-          setNotices(data.notices.slice(0, 3))
-        }
-      })
-      .catch((err) => {
-        console.error('[LatestNoticesPreview Error]:', err)
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [])
-
-  // If there are no published notices, we do not disturb the homepage
-  if (!loading && notices.length === 0) {
+export default function LatestNoticesPreview({ notices }: LatestNoticesPreviewProps) {
+  // If there are zero active notices, render nothing at all: no skeletons, no empty spaces, no layout shift
+  if (!notices || notices.length === 0) {
     return null
   }
 
@@ -83,62 +65,55 @@ export default function LatestNoticesPreview() {
         </div>
 
         {/* Notices Cards Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-28 rounded-xl bg-black/5 dark:bg-white/5 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {notices.map((notice) => (
-              <Link
-                key={notice.id}
-                href="/notices"
-                className="group flex flex-col justify-between p-4 rounded-xl bg-black/2 hover:bg-black/5 dark:bg-white/2 dark:hover:bg-white/5 border border-border/60 hover:border-primary/40 transition-all text-left"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.65rem] font-semibold border ${getCategoryColor(
-                        notice.notice_type
-                      )}`}
-                    >
-                      {notice.notice_type}
-                    </span>
-
-                    {notice.is_new && (
-                      <span className="relative flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wider bg-accent/20 text-accent">
-                        NEW
-                      </span>
-                    )}
-                  </div>
-
-                  <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug mb-1.5">
-                    {notice.title}
-                  </h4>
-
-                  <p className="text-xs text-foreground/65 line-clamp-2 leading-relaxed">
-                    {notice.description}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/30 text-[0.7rem] text-foreground/50">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={12} /> {formatISTDate(notice.publish_date)}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {notices.map((notice) => (
+            <Link
+              key={notice.id}
+              href="/notices"
+              className="group flex flex-col justify-between p-4 rounded-xl bg-black/2 hover:bg-black/5 dark:bg-white/2 dark:hover:bg-white/5 border border-border/60 hover:border-primary/40 transition-all text-left"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.65rem] font-semibold border ${getCategoryColor(
+                      notice.notice_type
+                    )}`}
+                  >
+                    {notice.notice_type}
                   </span>
-                  {notice.attachments && notice.attachments.length > 0 && (
-                    <span className="flex items-center gap-1 text-primary font-medium">
-                      <FileText size={12} /> {notice.attachments.length} file{notice.attachments.length > 1 ? 's' : ''}
+
+                  {notice.is_new && (
+                    <span className="relative flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wider bg-accent/20 text-accent">
+                      NEW
                     </span>
                   )}
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
+
+                <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug mb-1.5">
+                  {notice.title}
+                </h4>
+
+                {notice.description && (
+                  <p className="text-xs text-foreground/65 line-clamp-2 leading-relaxed">
+                    {notice.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/30 text-[0.7rem] text-foreground/50">
+                <span className="flex items-center gap-1">
+                  <Calendar size={12} /> {formatISTDate(notice.publish_date)}
+                </span>
+                {notice.attachment_count > 0 && (
+                  <span className="flex items-center gap-1 text-primary font-medium">
+                    <FileText size={12} /> {notice.attachment_count} file{notice.attachment_count > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   )
 }
-

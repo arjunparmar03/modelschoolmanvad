@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,4 +47,19 @@ export function createClient(cookieStore?: Awaited<ReturnType<typeof cookies>>) 
     return buildClient(cookieStore);
   }
   return cookies().then((store) => buildClient(store));
+}
+
+/**
+ * Creates a lightweight, cookie-free Supabase client for cached public read queries.
+ * Safe to call inside `unstable_cache` or static prerendering scopes without triggering
+ * dynamic header/cookie errors.
+ */
+export function createPublicClient() {
+  const { supabaseUrl, supabaseKey } = getCredentials();
+  return createSupabaseClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }

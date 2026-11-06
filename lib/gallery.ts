@@ -1,4 +1,5 @@
-import { createClient } from '@/utils/supabase/server'
+import { unstable_cache } from 'next/cache'
+import { createPublicClient } from '@/utils/supabase/server'
 import { defaultDB } from '@/lib/db'
 
 export interface GalleryImageItem {
@@ -40,7 +41,7 @@ function getDefaultCategories(): GalleryCategoryGroup[] {
  */
 export async function getGalleryCategories(): Promise<GalleryCategoryGroup[]> {
   try {
-    const supabase = await createClient()
+    const supabase = createPublicClient()
     const { data, error } = await supabase
       .from('gallery_images')
       .select('id, title, image_url, category, description, created_at')
@@ -87,3 +88,16 @@ export async function getGalleryCategories(): Promise<GalleryCategoryGroup[]> {
     return getDefaultCategories()
   }
 }
+
+/**
+ * Server-cached gallery categories for public campus pages.
+ * Revalidated via tag 'campus-gallery' upon admin image uploads/deletions.
+ */
+export const getCachedGalleryCategories = unstable_cache(
+  async () => getGalleryCategories(),
+  ['campus-gallery-categories'],
+  {
+    revalidate: 300,
+    tags: ['campus-gallery'],
+  }
+)

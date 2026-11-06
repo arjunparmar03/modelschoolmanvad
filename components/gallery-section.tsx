@@ -3,21 +3,28 @@
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { X, ChevronLeft, ChevronRight, Images } from 'lucide-react'
+import type { GalleryCategoryGroup } from '@/lib/gallery'
 
+interface GallerySectionProps {
+  initialCategories?: GalleryCategoryGroup[]
+}
 
-
-export default function GallerySection() {
+export default function GallerySection({ initialCategories }: GallerySectionProps = {}) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [displayCategories, setDisplayCategories] = useState<any[]>([])
+  const [displayCategories, setDisplayCategories] = useState<any[]>(
+    initialCategories && initialCategories.length > 0 ? initialCategories : []
+  )
 
   useEffect(() => {
-    fetch('/api/cms').then(r => r.json()).then(data => {
-      if (data?.galleryCategories?.length) {
-        setDisplayCategories(data.galleryCategories)
-      }
-    }).catch(e => console.log(e))
-  }, [])
+    if (!initialCategories || initialCategories.length === 0) {
+      fetch('/api/cms').then(r => r.json()).then(data => {
+        if (data?.galleryCategories?.length) {
+          setDisplayCategories(data.galleryCategories)
+        }
+      }).catch(e => console.log(e))
+    }
+  }, [initialCategories])
 
   const activeData = displayCategories.find((c) => c.id === selectedCategory)
   const images = activeData?.images ?? []
@@ -51,7 +58,7 @@ export default function GallerySection() {
 
         {/* Gallery Grid */}
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {displayCategories.map((cat) => (
+          {displayCategories.map((cat, idx) => (
             <div
               key={cat.id}
               className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-2xl hover:shadow-black/20 transition-all duration-400 cursor-pointer h-56 hover:-translate-y-1"
@@ -61,6 +68,9 @@ export default function GallerySection() {
                 src={cat.thumbnail || '/placeholder.svg'}
                 alt={cat.title}
                 fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                priority={idx < 2}
+                loading={idx < 3 ? 'eager' : 'lazy'}
                 className="object-cover group-hover:scale-110 transition-transform duration-500"
               />
               {/* Gradient overlay */}
@@ -116,6 +126,8 @@ export default function GallerySection() {
                 src={images[currentIndex]?.src || '/placeholder.svg'}
                 alt={images[currentIndex]?.alt || 'Gallery image'}
                 fill
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                priority
                 className="object-contain"
               />
 

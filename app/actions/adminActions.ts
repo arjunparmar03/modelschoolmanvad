@@ -1,7 +1,7 @@
 'use server'
 
 import { getDB, saveDB } from '@/lib/db'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import crypto from 'crypto'
 import fs from 'fs/promises'
 import path from 'path'
@@ -160,6 +160,7 @@ export async function addGalleryItem(categoryName: string, formData: FormData) {
     revalidatePath('/')
     revalidatePath('/campus')
     revalidatePath('/admin/gallery')
+    revalidateTag('campus-gallery', 'default')
 
     return { success: true, data: inserted }
   } catch (error: any) {
@@ -230,6 +231,7 @@ export async function deleteGalleryImage(idOrCatId: string, imgIndex?: number) {
         revalidatePath('/')
         revalidatePath('/campus')
         revalidatePath('/admin/gallery')
+        revalidateTag('campus-gallery', 'default')
         return { success: true }
       }
       throw new Error('Gallery image record not found.')
@@ -282,6 +284,7 @@ export async function deleteGalleryImage(idOrCatId: string, imgIndex?: number) {
     revalidatePath('/')
     revalidatePath('/campus')
     revalidatePath('/admin/gallery')
+    revalidateTag('campus-gallery', 'default')
 
     return { success: true }
   } catch (error: any) {
@@ -433,6 +436,7 @@ export async function addActivity(title: string, description: string, formData: 
     revalidatePath('/')
     revalidatePath('/campus')
     revalidatePath('/admin/activities')
+    revalidateTag('campus-activities', 'default')
 
     return { success: true, data: imgRow }
   } catch (error: any) {
@@ -520,6 +524,7 @@ export async function deleteActivityImage(imageIdOrActId: string, imgIndex?: num
         revalidatePath('/')
         revalidatePath('/campus')
         revalidatePath('/admin/activities')
+        revalidateTag('campus-activities', 'default')
         return { success: true }
       }
       throw new Error('Activity image record not found.')
@@ -577,6 +582,7 @@ export async function deleteActivityImage(imageIdOrActId: string, imgIndex?: num
     revalidatePath('/')
     revalidatePath('/campus')
     revalidatePath('/admin/activities')
+    revalidateTag('campus-activities', 'default')
 
     return { success: true }
   } catch (error: any) {
@@ -666,6 +672,7 @@ export async function deleteActivity(activityId: string) {
     revalidatePath('/')
     revalidatePath('/campus')
     revalidatePath('/admin/activities')
+    revalidateTag('campus-activities', 'default')
 
     return { success: true }
   } catch (error: any) {
@@ -858,6 +865,7 @@ export async function createNotice(formData: FormData) {
     revalidatePath('/')
     revalidatePath('/notices')
     revalidatePath('/admin/notices')
+    revalidateTag('public-notices', 'default')
 
     return { success: true, noticeId: createdNoticeId }
   } catch (error: any) {
@@ -928,6 +936,7 @@ export async function updateNotice(
     revalidatePath('/')
     revalidatePath('/notices')
     revalidatePath('/admin/notices')
+    revalidateTag('public-notices', 'default')
 
     return { success: true }
   } catch (error: any) {
@@ -960,6 +969,7 @@ export async function toggleNoticePublishStatus(id: string, isPublished: boolean
     revalidatePath('/')
     revalidatePath('/notices')
     revalidatePath('/admin/notices')
+    revalidateTag('public-notices', 'default')
 
     return { success: true }
   } catch (error: any) {
@@ -1055,6 +1065,7 @@ export async function uploadNoticeAttachment(noticeId: string, formData: FormDat
     revalidatePath('/')
     revalidatePath('/notices')
     revalidatePath('/admin/notices')
+    revalidateTag('public-notices', 'default')
 
     return { success: true, data: inserted }
   } catch (error: any) {
@@ -1122,6 +1133,7 @@ export async function deleteNoticeAttachment(attachmentId: string) {
     revalidatePath('/')
     revalidatePath('/notices')
     revalidatePath('/admin/notices')
+    revalidateTag('public-notices', 'default')
 
     if (!storageCleanupSuccess) {
       return {
@@ -1196,6 +1208,7 @@ export async function deleteNotice(noticeId: string) {
     revalidatePath('/')
     revalidatePath('/notices')
     revalidatePath('/admin/notices')
+    revalidateTag('public-notices', 'default')
 
     if (!storageCleanupSuccess) {
       return {

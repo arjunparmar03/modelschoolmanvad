@@ -41,6 +41,16 @@ export interface Notice {
   is_new?: boolean
 }
 
+export interface NoticePreviewItem {
+  id: string
+  title: string
+  description?: string
+  notice_type: NoticeCategory
+  publish_date: string
+  is_new?: boolean
+  attachment_count: number
+}
+
 /**
  * Returns today's date in Indian Standard Time (IST, Asia/Kolkata) as YYYY-MM-DD.
  */

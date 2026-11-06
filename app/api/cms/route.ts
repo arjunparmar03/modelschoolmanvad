@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getDB } from '@/lib/db'
-import { getGalleryCategories } from '@/lib/gallery'
-import { getActivities } from '@/lib/activities'
-import { getPublishedNotices } from '@/lib/notices'
+import { getCachedGalleryCategories } from '@/lib/gallery'
+import { getCachedActivities } from '@/lib/activities'
+import { getLatestNoticesPreview } from '@/lib/notices'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,9 +10,9 @@ export async function GET() {
   try {
     const db = await getDB()
     const [galleryCategories, activities, notices] = await Promise.all([
-      getGalleryCategories(),
-      getActivities(),
-      getPublishedNotices({ limit: 5 }),
+      getCachedGalleryCategories(),
+      getCachedActivities(),
+      getLatestNoticesPreview(5),
     ])
 
     return NextResponse.json({
@@ -22,8 +22,7 @@ export async function GET() {
       notices,
     }, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-        Pragma: 'no-cache',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     })
   } catch (e: any) {

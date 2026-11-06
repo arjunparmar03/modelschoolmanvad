@@ -11,14 +11,23 @@ const stats = [
   { icon: Home, value: 'KGBV', label: 'Girls Hostel' },
 ]
 
-export default function HeroSection() {
-  const [cms, setCms] = useState<any>(null)
+interface HeroSectionProps {
+  initialContent?: {
+    heroHeading?: string
+    heroSubtitle?: string
+  }
+}
+
+export default function HeroSection({ initialContent }: HeroSectionProps = {}) {
+  const [cms, setCms] = useState<any>(initialContent ? { content: initialContent } : null)
   
   useEffect(() => {
-    fetch('/api/cms').then(r => r.json()).then(data => {
-      if (data && data.content) setCms(data)
-    }).catch(e => console.error("CMS failed to load"))
-  }, [])
+    if (!initialContent) {
+      fetch('/api/cms').then(r => r.json()).then(data => {
+        if (data && data.content) setCms(data)
+      }).catch(e => console.error("CMS failed to load"))
+    }
+  }, [initialContent])
 
   const scrollTo = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
@@ -38,6 +47,7 @@ export default function HeroSection() {
             src="/school-building.jpg"
             alt="Model School Building"
             fill
+            sizes="100vw"
             className="object-cover object-center"
             priority
           />
@@ -128,6 +138,7 @@ export default function HeroSection() {
             src="/school-building.jpg"
             alt="Model School Building"
             fill
+            sizes="100vw"
             className="object-cover object-center"
             priority
           />
