@@ -55,6 +55,7 @@ export function AdminOptimizationPreview({
 
     // Generate instant client-side object URL (0 network transfer)
     const isImage = file.type.startsWith('image/')
+    const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
     if (isImage) {
       const url = URL.createObjectURL(file)
       setLocalPreviewUrl(url)
@@ -76,9 +77,9 @@ export function AdminOptimizationPreview({
             optimizedSize: file.size,
             savingsPercent: 0,
             isOptimized: false,
-            format: isPdf ? 'pdf' : (file.name.split('.').pop() || 'file'),
+            format: isPdfFile ? 'pdf' : (file.name.split('.').pop() || 'file'),
             message: 'Document ready for direct upload to secure school storage.',
-            isPdf,
+            isPdf: isPdfFile,
           })
           setLoading(false)
           return
@@ -108,9 +109,9 @@ export function AdminOptimizationPreview({
           optimizedSize: file.size,
           savingsPercent: 0,
           isOptimized: false,
-          format: isPdf ? 'pdf' : (file.name.split('.').pop() || 'file'),
+          format: isPdfFile ? 'pdf' : (file.name.split('.').pop() || 'file'),
           message: 'Document ready to attach and publish.',
-          isPdf,
+          isPdf: isPdfFile,
         })
       } finally {
         setLoading(false)

@@ -5,6 +5,7 @@ import { UploadCloud, Image as ImageIcon, Trash2, Plus } from 'lucide-react'
 import Image from 'next/image'
 import { addGalleryItem, deleteGalleryImage } from '@/app/actions/adminActions'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
+import { compressImageClient } from '@/lib/client-image-compression'
 
 export default function GalleryEditor() {
   const [categories, setCategories] = useState<any[]>([])
@@ -28,8 +29,12 @@ export default function GalleryEditor() {
     if (!file || !title) return
     setUploading(true)
     try {
+      let uploadFile = file
+      if (uploadFile.type.startsWith('image/')) {
+        uploadFile = await compressImageClient(uploadFile)
+      }
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', uploadFile)
       const res = await addGalleryItem(title, formData)
       if (res?.error) alert("Upload Error: " + res.error)
     } catch (err: any) {
@@ -45,8 +50,12 @@ export default function GalleryEditor() {
   const handleDirectUpload = async (categoryTitle: string, selectedFile: File) => {
     setUploadingTitle(categoryTitle)
     try {
+      let uploadFile = selectedFile
+      if (uploadFile.type.startsWith('image/')) {
+        uploadFile = await compressImageClient(uploadFile)
+      }
       const formData = new FormData()
-      formData.append('file', selectedFile)
+      formData.append('file', uploadFile)
       const res = await addGalleryItem(categoryTitle, formData)
       if (res?.error) alert("Upload Error: " + res.error)
     } catch (err: any) {

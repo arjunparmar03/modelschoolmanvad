@@ -5,6 +5,7 @@ import { PlusCircle, Trash2, UploadCloud, Image as ImageIcon, Plus } from 'lucid
 import Image from 'next/image'
 import { addActivity, deleteActivityImage, deleteActivity } from '@/app/actions/adminActions'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
+import { compressImageClient } from '@/lib/client-image-compression'
 
 export default function ActivitiesEditor() {
   const [activities, setActivities] = useState<any[]>([])
@@ -29,8 +30,12 @@ export default function ActivitiesEditor() {
     if (!file || !title) return
     setUploading(true)
     try {
+      let uploadFile = file
+      if (uploadFile.type.startsWith('image/')) {
+        uploadFile = await compressImageClient(uploadFile)
+      }
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', uploadFile)
       const res = await addActivity(title, desc, formData)
       if (res?.error) alert("Upload Error: " + res.error)
     } catch (err: any) {
@@ -47,8 +52,12 @@ export default function ActivitiesEditor() {
   const handleDirectUpload = async (activityTitle: string, selectedFile: File, existDesc: string) => {
     setUploadingTitle(activityTitle)
     try {
+      let uploadFile = selectedFile
+      if (uploadFile.type.startsWith('image/')) {
+        uploadFile = await compressImageClient(uploadFile)
+      }
       const formData = new FormData()
-      formData.append('file', selectedFile)
+      formData.append('file', uploadFile)
       const res = await addActivity(activityTitle, existDesc, formData)
       if (res?.error) alert("Upload Error: " + res.error)
     } catch (err: any) {

@@ -34,6 +34,7 @@ import {
 } from '@/app/actions/adminActions'
 import { createClient as createBrowserClient } from '@/utils/supabase/client'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
+import { compressImageClient } from '@/lib/client-image-compression'
 
 function formatFileSize(bytes: number | null): string {
   if (!bytes || bytes <= 0) return ''
@@ -117,13 +118,13 @@ export default function AdminNoticesPage() {
     }
   }
 
-  // Handle Multi-file Selection for Creation
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Multi-file Selection for Creation with Client-Side Image Pre-Compression
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const incoming = Array.from(e.target.files)
     const valid: File[] = []
 
-    for (const f of incoming) {
+    for (let f of incoming) {
       const ext = f.name.split('.').pop()?.toLowerCase()
       if (ext === 'svg' || f.type.includes('svg')) {
         alert(`Security Warning: "${f.name}" is an SVG file, which is strictly prohibited.`)
@@ -132,6 +133,14 @@ export default function AdminNoticesPage() {
       if (f.size > 26214400) {
         alert(`File "${f.name}" exceeds maximum allowed limit of 25MB.`)
         continue
+      }
+      // Instantly optimize raster images in browser before upload
+      if (f.type.startsWith('image/')) {
+        try {
+          f = await compressImageClient(f)
+        } catch (compErr) {
+          console.warn('[Client image compression failed, using original]:', compErr)
+        }
       }
       valid.push(f)
     }
@@ -176,8 +185,16 @@ export default function AdminNoticesPage() {
       if (selectedFiles.length > 0) {
         const supabase = createBrowserClient()
 
-        for (const file of selectedFiles) {
+        for (let file of selectedFiles) {
           let uploadedSuccessfully = false
+
+          if (file.type.startsWith('image/')) {
+            try {
+              file = await compressImageClient(file)
+            } catch (compErr) {
+              console.warn('[Pre-upload image compression failed]:', compErr)
+            }
+          }
 
           // If file <= 4MB, attempt server-side optimization upload
           if (file.size <= 4 * 1024 * 1024) {
@@ -333,7 +350,7 @@ export default function AdminNoticesPage() {
   // Upload Additional Attachment to Editing Notice
   const handleSingleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingNotice || !e.target.files?.[0]) return
-    const file = e.target.files[0]
+    let file = e.target.files[0]
 
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (ext === 'svg' || file.type.includes('svg')) {
@@ -347,22 +364,71 @@ export default function AdminNoticesPage() {
 
     try {
       setUploadingSingleFile(true)
-      const formData = new FormData()
-      formData.append('file', file)
+      if (file.type.startsWith('image/')) {
+        try {
+          file = await compressImageClient(file)
+        } catch (compErr) {
+          console.warn('[Single file client image compression failed]:', compErr)
+        }
+      }
 
-      const res = await uploadNoticeAttachment(editingNotice.id, formData)
-      if (!res.success) {
-        throw new Error(res.error || 'Failed to attach file.')
+      let uploadedSuccessfully = false
+      let newAttachmentData: any = null
+
+      if (file.size <= 4 * 1024 * 1024) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await uploadNoticeAttachment(editingNotice.id, formData)
+          if (res.success && res.data) {
+            uploadedSuccessfully = true
+            newAttachmentData = res.data
+          }
+        } catch (serverErr) {
+          console.warn('[Server action failed, using direct Storage upload]:', serverErr)
+        }
+      }
+
+      if (!uploadedSuccessfully) {
+        const supabase = createBrowserClient()
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'bin'
+        const fileType = ext === 'pdf' ? 'pdf' : 'image'
+        const fileId = crypto.randomUUID()
+        const storagePath = `notices/${editingNotice.id}/${fileId}.${ext}`
+
+        const { error: uploadErr } = await supabase.storage
+          .from('school-notices')
+          .upload(storagePath, file, {
+            contentType: file.type || (fileType === 'pdf' ? 'application/pdf' : 'image/jpeg'),
+            upsert: false,
+          })
+
+        if (uploadErr) {
+          throw new Error(`Failed to upload "${file.name}": ${uploadErr.message}`)
+        }
+
+        const recordRes = await registerNoticeAttachmentRecord({
+          noticeId: editingNotice.id,
+          filePath: storagePath,
+          fileName: file.name,
+          fileType,
+          fileSize: file.size,
+        })
+
+        if (!recordRes.success) {
+          throw new Error(`Failed to record attachment "${file.name}": ${recordRes.error}`)
+        }
+        newAttachmentData = recordRes.data
       }
 
       if (singleFileInputRef.current) singleFileInputRef.current.value = ''
       loadAdminNotices()
 
       // Update current modal state
-      if (res.data) {
+      if (newAttachmentData) {
         setEditingNotice({
           ...editingNotice,
-          attachments: [...editingNotice.attachments, res.data],
+          attachments: [...(editingNotice.attachments || []), newAttachmentData],
         })
       }
     } catch (err: any) {
