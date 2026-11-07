@@ -32,6 +32,23 @@ async function requireAdmin() {
   return user
 }
 
+function safeRevalidate(paths: string[] = [], tags: string[] = []) {
+  for (const p of paths) {
+    try {
+      revalidatePath(p)
+    } catch (e) {
+      console.warn(`[revalidatePath warning for ${p}]:`, e)
+    }
+  }
+  for (const t of tags) {
+    try {
+      revalidateTag(t, 'max')
+    } catch (e) {
+      console.warn(`[revalidateTag warning for ${t}]:`, e)
+    }
+  }
+}
+
 export async function updateContent(content: any) {
   try {
     await requireAdmin()
@@ -157,10 +174,7 @@ export async function addGalleryItem(categoryName: string, formData: FormData) {
     }
 
     // Revalidate paths
-    revalidatePath('/')
-    revalidatePath('/campus')
-    revalidatePath('/admin/gallery')
-    revalidateTag('campus-gallery', 'default')
+    safeRevalidate(['/', '/campus', '/admin/gallery'], ['campus-gallery'])
 
     return { success: true, data: inserted }
   } catch (error: any) {
@@ -228,10 +242,7 @@ export async function deleteGalleryImage(idOrCatId: string, imgIndex?: number) {
           cat.thumbnail = cat.images[0].src
         }
         await saveDB(db)
-        revalidatePath('/')
-        revalidatePath('/campus')
-        revalidatePath('/admin/gallery')
-        revalidateTag('campus-gallery', 'default')
+        safeRevalidate(['/', '/campus', '/admin/gallery'], ['campus-gallery'])
         return { success: true }
       }
       throw new Error('Gallery image record not found.')
@@ -281,10 +292,7 @@ export async function deleteGalleryImage(idOrCatId: string, imgIndex?: number) {
     }
 
     // Revalidate cached paths
-    revalidatePath('/')
-    revalidatePath('/campus')
-    revalidatePath('/admin/gallery')
-    revalidateTag('campus-gallery', 'default')
+    safeRevalidate(['/', '/campus', '/admin/gallery'], ['campus-gallery'])
 
     return { success: true }
   } catch (error: any) {
@@ -433,10 +441,7 @@ export async function addActivity(title: string, description: string, formData: 
     }
 
     // Revalidate paths
-    revalidatePath('/')
-    revalidatePath('/campus')
-    revalidatePath('/admin/activities')
-    revalidateTag('campus-activities', 'default')
+    safeRevalidate(['/', '/campus', '/admin/activities'], ['campus-activities'])
 
     return { success: true, data: imgRow }
   } catch (error: any) {
@@ -521,10 +526,7 @@ export async function deleteActivityImage(imageIdOrActId: string, imgIndex?: num
       if (foundAct && foundIdx !== undefined && foundIdx >= 0 && foundAct.images[foundIdx]) {
         foundAct.images.splice(foundIdx, 1)
         await saveDB(db)
-        revalidatePath('/')
-        revalidatePath('/campus')
-        revalidatePath('/admin/activities')
-        revalidateTag('campus-activities', 'default')
+        safeRevalidate(['/', '/campus', '/admin/activities'], ['campus-activities'])
         return { success: true }
       }
       throw new Error('Activity image record not found.')
@@ -579,10 +581,7 @@ export async function deleteActivityImage(imageIdOrActId: string, imgIndex?: num
     }
 
     // Revalidate cached paths
-    revalidatePath('/')
-    revalidatePath('/campus')
-    revalidatePath('/admin/activities')
-    revalidateTag('campus-activities', 'default')
+    safeRevalidate(['/', '/campus', '/admin/activities'], ['campus-activities'])
 
     return { success: true }
   } catch (error: any) {
@@ -669,10 +668,7 @@ export async function deleteActivity(activityId: string) {
     await saveDB(db)
 
     // Revalidate cached paths
-    revalidatePath('/')
-    revalidatePath('/campus')
-    revalidatePath('/admin/activities')
-    revalidateTag('campus-activities', 'default')
+    safeRevalidate(['/', '/campus', '/admin/activities'], ['campus-activities'])
 
     return { success: true }
   } catch (error: any) {
@@ -862,10 +858,7 @@ export async function createNotice(formData: FormData) {
     }
 
     // Revalidate affected cached pages
-    revalidatePath('/')
-    revalidatePath('/notices')
-    revalidatePath('/admin/notices')
-    revalidateTag('public-notices', 'default')
+    safeRevalidate(['/', '/notices', '/admin/notices'], ['public-notices'])
 
     return { success: true, noticeId: createdNoticeId }
   } catch (error: any) {
@@ -933,10 +926,7 @@ export async function updateNotice(
       throw new Error(`Failed to update notice: ${error.message}`)
     }
 
-    revalidatePath('/')
-    revalidatePath('/notices')
-    revalidatePath('/admin/notices')
-    revalidateTag('public-notices', 'default')
+    safeRevalidate(['/', '/notices', '/admin/notices'], ['public-notices'])
 
     return { success: true }
   } catch (error: any) {
@@ -966,10 +956,7 @@ export async function toggleNoticePublishStatus(id: string, isPublished: boolean
       throw new Error(`Failed to update status: ${error.message}`)
     }
 
-    revalidatePath('/')
-    revalidatePath('/notices')
-    revalidatePath('/admin/notices')
-    revalidateTag('public-notices', 'default')
+    safeRevalidate(['/', '/notices', '/admin/notices'], ['public-notices'])
 
     return { success: true }
   } catch (error: any) {
@@ -1062,10 +1049,7 @@ export async function uploadNoticeAttachment(noticeId: string, formData: FormDat
       throw new Error(`Database record creation failed: ${insertError.message}`)
     }
 
-    revalidatePath('/')
-    revalidatePath('/notices')
-    revalidatePath('/admin/notices')
-    revalidateTag('public-notices', 'default')
+    safeRevalidate(['/', '/notices', '/admin/notices'], ['public-notices'])
 
     return { success: true, data: inserted }
   } catch (error: any) {
@@ -1116,10 +1100,7 @@ export async function registerNoticeAttachmentRecord(data: {
       throw new Error(`Failed to record attachment: ${insertError.message}`)
     }
 
-    revalidatePath('/')
-    revalidatePath('/notices')
-    revalidatePath('/admin/notices')
-    revalidateTag('public-notices', 'default')
+    safeRevalidate(['/', '/notices', '/admin/notices'], ['public-notices'])
 
     return { success: true, data: inserted }
   } catch (error: any) {
@@ -1179,10 +1160,7 @@ export async function deleteNoticeAttachment(attachmentId: string) {
       }
     }
 
-    revalidatePath('/')
-    revalidatePath('/notices')
-    revalidatePath('/admin/notices')
-    revalidateTag('public-notices', 'default')
+    safeRevalidate(['/', '/notices', '/admin/notices'], ['public-notices'])
 
     if (!storageCleanupSuccess) {
       return {
@@ -1254,10 +1232,7 @@ export async function deleteNotice(noticeId: string) {
       }
     }
 
-    revalidatePath('/')
-    revalidatePath('/notices')
-    revalidatePath('/admin/notices')
-    revalidateTag('public-notices', 'default')
+    safeRevalidate(['/', '/notices', '/admin/notices'], ['public-notices'])
 
     if (!storageCleanupSuccess) {
       return {

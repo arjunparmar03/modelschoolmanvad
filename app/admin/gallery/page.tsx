@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { addGalleryItem, deleteGalleryImage } from '@/app/actions/adminActions'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
 import { compressImageClient } from '@/lib/client-image-compression'
+import { createClient as createBrowserClient } from '@/utils/supabase/client'
 
 export default function GalleryEditor() {
   const [categories, setCategories] = useState<any[]>([])
@@ -33,12 +34,58 @@ export default function GalleryEditor() {
       if (uploadFile.type.startsWith('image/')) {
         uploadFile = await compressImageClient(uploadFile)
       }
-      const formData = new FormData()
-      formData.append('file', uploadFile)
-      const res = await addGalleryItem(title, formData)
-      if (res?.error) alert("Upload Error: " + res.error)
+
+      let uploadedSuccessfully = false
+
+      // 1. Direct Supabase Storage upload (bypasses serverless body limits & timeouts)
+      try {
+        const supabase = createBrowserClient()
+        const ext = uploadFile.name.split('.').pop()?.toLowerCase() || 'webp'
+        const filename = `${crypto.randomUUID()}.${ext}`
+        const storagePath = `gallery/${filename}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('school-media')
+          .upload(storagePath, uploadFile, {
+            contentType: uploadFile.type || 'image/webp',
+            upsert: false,
+          })
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(storagePath)
+
+          const cleanTitle = title.trim()
+          const imageTitle = `${cleanTitle} - ${new Date().toLocaleDateString('en-GB')}`
+          const { error: insertError } = await supabase
+            .from('gallery_images')
+            .insert({
+              title: imageTitle,
+              category: cleanTitle,
+              image_url: publicUrl,
+            })
+
+          if (!insertError) {
+            uploadedSuccessfully = true
+          }
+        }
+      } catch (directErr) {
+        console.warn('[Direct gallery upload fallback to Server Action]:', directErr)
+      }
+
+      // 2. Server Action fallback
+      if (!uploadedSuccessfully) {
+        const formData = new FormData()
+        formData.append('file', uploadFile)
+        const res = await addGalleryItem(title, formData)
+        if (res?.error) {
+          alert('Upload Error: ' + res.error)
+          return
+        }
+      }
     } catch (err: any) {
-      alert("Error: " + err.message)
+      alert('Error: ' + (err.message || 'Server connection error'))
     } finally {
       setFile(null)
       setTitle('')
@@ -54,12 +101,58 @@ export default function GalleryEditor() {
       if (uploadFile.type.startsWith('image/')) {
         uploadFile = await compressImageClient(uploadFile)
       }
-      const formData = new FormData()
-      formData.append('file', uploadFile)
-      const res = await addGalleryItem(categoryTitle, formData)
-      if (res?.error) alert("Upload Error: " + res.error)
+
+      let uploadedSuccessfully = false
+
+      // 1. Direct Supabase Storage upload (bypasses serverless body limits & timeouts)
+      try {
+        const supabase = createBrowserClient()
+        const ext = uploadFile.name.split('.').pop()?.toLowerCase() || 'webp'
+        const filename = `${crypto.randomUUID()}.${ext}`
+        const storagePath = `gallery/${filename}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('school-media')
+          .upload(storagePath, uploadFile, {
+            contentType: uploadFile.type || 'image/webp',
+            upsert: false,
+          })
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(storagePath)
+
+          const cleanCategory = categoryTitle.trim()
+          const imageTitle = `${cleanCategory} - ${new Date().toLocaleDateString('en-GB')}`
+          const { error: insertError } = await supabase
+            .from('gallery_images')
+            .insert({
+              title: imageTitle,
+              category: cleanCategory,
+              image_url: publicUrl,
+            })
+
+          if (!insertError) {
+            uploadedSuccessfully = true
+          }
+        }
+      } catch (directErr) {
+        console.warn('[Direct category upload fallback to Server Action]:', directErr)
+      }
+
+      // 2. Server Action fallback
+      if (!uploadedSuccessfully) {
+        const formData = new FormData()
+        formData.append('file', uploadFile)
+        const res = await addGalleryItem(categoryTitle, formData)
+        if (res?.error) {
+          alert('Upload Error: ' + res.error)
+          return
+        }
+      }
     } catch (err: any) {
-      alert("Error: " + err.message)
+      alert('Error: ' + (err.message || 'Server connection error'))
     } finally {
       setUploadingTitle(null)
       loadGallery()

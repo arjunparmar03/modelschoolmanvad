@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { addActivity, deleteActivityImage, deleteActivity } from '@/app/actions/adminActions'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
 import { compressImageClient } from '@/lib/client-image-compression'
+import { createClient as createBrowserClient } from '@/utils/supabase/client'
 
 export default function ActivitiesEditor() {
   const [activities, setActivities] = useState<any[]>([])
@@ -34,12 +35,83 @@ export default function ActivitiesEditor() {
       if (uploadFile.type.startsWith('image/')) {
         uploadFile = await compressImageClient(uploadFile)
       }
-      const formData = new FormData()
-      formData.append('file', uploadFile)
-      const res = await addActivity(title, desc, formData)
-      if (res?.error) alert("Upload Error: " + res.error)
+
+      let uploadedSuccessfully = false
+
+      // 1. Direct Supabase Storage upload
+      try {
+        const supabase = createBrowserClient()
+        const ext = uploadFile.name.split('.').pop()?.toLowerCase() || 'webp'
+        const filename = `${crypto.randomUUID()}.${ext}`
+        const storagePath = `activities/${filename}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('school-media')
+          .upload(storagePath, uploadFile, {
+            contentType: uploadFile.type || 'image/webp',
+            upsert: false,
+          })
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(storagePath)
+
+          const cleanTitle = title.trim()
+          const cleanDesc = desc?.trim() || cleanTitle
+
+          const { data: existingAct } = await supabase
+            .from('activities')
+            .select('id')
+            .ilike('title', cleanTitle)
+            .maybeSingle()
+
+          let activityId = existingAct?.id
+
+          if (!activityId) {
+            const { data: newAct } = await supabase
+              .from('activities')
+              .insert({
+                title: cleanTitle,
+                description: cleanDesc,
+                image_url: publicUrl,
+              })
+              .select('id')
+              .single()
+
+            activityId = newAct?.id
+          }
+
+          if (activityId) {
+            const { error: imgError } = await supabase
+              .from('activity_images')
+              .insert({
+                activity_id: activityId,
+                image_url: publicUrl,
+                caption: cleanTitle,
+              })
+
+            if (!imgError) {
+              uploadedSuccessfully = true
+            }
+          }
+        }
+      } catch (directErr) {
+        console.warn('[Direct activity upload fallback to Server Action]:', directErr)
+      }
+
+      // 2. Server Action fallback
+      if (!uploadedSuccessfully) {
+        const formData = new FormData()
+        formData.append('file', uploadFile)
+        const res = await addActivity(title, desc, formData)
+        if (res?.error) {
+          alert('Upload Error: ' + res.error)
+          return
+        }
+      }
     } catch (err: any) {
-      alert("Error: " + err.message)
+      alert('Error: ' + (err.message || 'Server connection error'))
     } finally {
       setFile(null)
       setTitle('')
@@ -56,12 +128,83 @@ export default function ActivitiesEditor() {
       if (uploadFile.type.startsWith('image/')) {
         uploadFile = await compressImageClient(uploadFile)
       }
-      const formData = new FormData()
-      formData.append('file', uploadFile)
-      const res = await addActivity(activityTitle, existDesc, formData)
-      if (res?.error) alert("Upload Error: " + res.error)
+
+      let uploadedSuccessfully = false
+
+      // 1. Direct Supabase Storage upload
+      try {
+        const supabase = createBrowserClient()
+        const ext = uploadFile.name.split('.').pop()?.toLowerCase() || 'webp'
+        const filename = `${crypto.randomUUID()}.${ext}`
+        const storagePath = `activities/${filename}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('school-media')
+          .upload(storagePath, uploadFile, {
+            contentType: uploadFile.type || 'image/webp',
+            upsert: false,
+          })
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(storagePath)
+
+          const cleanTitle = activityTitle.trim()
+          const cleanDesc = existDesc?.trim() || cleanTitle
+
+          const { data: existingAct } = await supabase
+            .from('activities')
+            .select('id')
+            .ilike('title', cleanTitle)
+            .maybeSingle()
+
+          let activityId = existingAct?.id
+
+          if (!activityId) {
+            const { data: newAct } = await supabase
+              .from('activities')
+              .insert({
+                title: cleanTitle,
+                description: cleanDesc,
+                image_url: publicUrl,
+              })
+              .select('id')
+              .single()
+
+            activityId = newAct?.id
+          }
+
+          if (activityId) {
+            const { error: imgError } = await supabase
+              .from('activity_images')
+              .insert({
+                activity_id: activityId,
+                image_url: publicUrl,
+                caption: cleanTitle,
+              })
+
+            if (!imgError) {
+              uploadedSuccessfully = true
+            }
+          }
+        }
+      } catch (directErr) {
+        console.warn('[Direct activity upload fallback to Server Action]:', directErr)
+      }
+
+      // 2. Server Action fallback
+      if (!uploadedSuccessfully) {
+        const formData = new FormData()
+        formData.append('file', uploadFile)
+        const res = await addActivity(activityTitle, existDesc, formData)
+        if (res?.error) {
+          alert('Upload Error: ' + res.error)
+          return
+        }
+      }
     } catch (err: any) {
-      alert("Error: " + err.message)
+      alert('Error: ' + (err.message || 'Server connection error'))
     } finally {
       setUploadingTitle(null)
       loadActivities()
