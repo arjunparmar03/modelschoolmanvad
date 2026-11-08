@@ -97,7 +97,7 @@ export const getCachedGalleryCategories = unstable_cache(
   async () => getGalleryCategories(),
   ['campus-gallery-categories'],
   {
-    revalidate: 300,
+    revalidate: 60,
     tags: ['campus-gallery'],
   }
 )

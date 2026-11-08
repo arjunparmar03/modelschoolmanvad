@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PlusCircle, Trash2, UploadCloud, Image as ImageIcon, Plus } from 'lucide-react'
 import Image from 'next/image'
-import { addActivity, deleteActivityImage, deleteActivity } from '@/app/actions/adminActions'
+import { addActivity, deleteActivityImage, deleteActivity, revalidateActivities } from '@/app/actions/adminActions'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
 import { compressImageClient } from '@/lib/client-image-compression'
 import { createClient as createBrowserClient } from '@/utils/supabase/client'
@@ -17,11 +17,74 @@ export default function ActivitiesEditor() {
   const [desc, setDesc] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
-  const loadActivities = () => {
-    fetch('/api/cms').then(r => r.json()).then(data => {
+  const loadActivities = async () => {
+    try {
+      const supabase = createBrowserClient()
+      const { data, error } = await supabase
+        .from('activities')
+        .select(`
+          id,
+          title,
+          description,
+          activity_date,
+          created_at,
+          updated_at,
+          activity_images (
+            id,
+            image_url,
+            caption,
+            sort_order,
+            created_at
+          )
+        `)
+        .order('activity_date', { ascending: false })
+
+      if (!error && data) {
+        const mapped = data.map((act: any) => {
+          const rawImages = (act.activity_images || []) as any[]
+          rawImages.sort((a, b) => {
+            const orderDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0)
+            if (orderDiff !== 0) return orderDiff
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          })
+
+          const images = rawImages.map((img: any) => ({
+            id: img.id,
+            src: img.image_url,
+            alt: img.caption || act.title,
+          }))
+
+          const thumbnail = images[0]?.src || '/placeholder.svg'
+
+          return {
+            id: act.id,
+            title: act.title,
+            description: act.description,
+            thumbnail,
+            images,
+            activity_date: act.activity_date,
+          }
+        })
+
+        if (mapped.length > 0) {
+          setActivities(mapped)
+          setLoading(false)
+          return
+        }
+      }
+    } catch (err) {
+      console.warn('[loadActivities direct fetch fallback]:', err)
+    }
+
+    try {
+      const res = await fetch(`/api/cms?_t=${Date.now()}`, { cache: 'no-store' })
+      const data = await res.json()
       setActivities(data?.activities || [])
+    } catch (err) {
+      console.error('[loadActivities fetch error]:', err)
+    } finally {
       setLoading(false)
-    })
+    }
   }
 
   useEffect(() => { loadActivities() }, [])
@@ -93,6 +156,7 @@ export default function ActivitiesEditor() {
 
             if (!imgError) {
               uploadedSuccessfully = true
+              await revalidateActivities()
             }
           }
         }
@@ -186,6 +250,7 @@ export default function ActivitiesEditor() {
 
             if (!imgError) {
               uploadedSuccessfully = true
+              await revalidateActivities()
             }
           }
         }
@@ -215,6 +280,7 @@ export default function ActivitiesEditor() {
     if (!confirm('Delete this photo?')) return
     const res = await deleteActivityImage(imageIdOrActId, imgIndex)
     if (res?.error) alert("Delete Error: " + res.error)
+    await revalidateActivities()
     loadActivities()
   }
 
@@ -222,6 +288,7 @@ export default function ActivitiesEditor() {
     if (!confirm(`Delete entire activity "${actTitle}" and all of its photos? This action cannot be undone.`)) return
     const res = await deleteActivity(actId)
     if (res?.error) alert("Delete Error: " + res.error)
+    await revalidateActivities()
     loadActivities()
   }
 

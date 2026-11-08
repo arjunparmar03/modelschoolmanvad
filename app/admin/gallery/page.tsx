@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { UploadCloud, Image as ImageIcon, Trash2, Plus } from 'lucide-react'
 import Image from 'next/image'
-import { addGalleryItem, deleteGalleryImage } from '@/app/actions/adminActions'
+import { addGalleryItem, deleteGalleryImage, revalidateGallery } from '@/app/actions/adminActions'
 import { AdminOptimizationPreview } from '@/components/admin-optimization-preview'
 import { compressImageClient } from '@/lib/client-image-compression'
 import { createClient as createBrowserClient } from '@/utils/supabase/client'
@@ -16,11 +16,53 @@ export default function GalleryEditor() {
   const [title, setTitle] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
-  const loadGallery = () => {
-    fetch('/api/cms').then(r => r.json()).then(data => {
+  const loadGallery = async () => {
+    try {
+      const supabase = createBrowserClient()
+      const { data, error } = await supabase
+        .from('gallery_images')
+        .select('id, title, image_url, category, description, created_at')
+        .order('created_at', { ascending: true })
+
+      if (!error && data && data.length > 0) {
+        const categoryMap = new Map<string, any>()
+        for (const row of data) {
+          const catTitle = (row.category || 'General').trim()
+          const catSlug = catTitle.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'category'
+
+          if (!categoryMap.has(catTitle)) {
+            categoryMap.set(catTitle, {
+              id: catSlug,
+              title: catTitle,
+              thumbnail: row.image_url || '/placeholder.svg',
+              images: [],
+            })
+          }
+
+          const cat = categoryMap.get(catTitle)!
+          cat.images.push({
+            id: row.id,
+            src: row.image_url,
+            alt: row.title || catTitle,
+          })
+        }
+        setCategories(Array.from(categoryMap.values()))
+        setLoading(false)
+        return
+      }
+    } catch (directErr) {
+      console.warn('[Admin Gallery direct fetch fallback to API]:', directErr)
+    }
+
+    try {
+      const res = await fetch(`/api/cms?_t=${Date.now()}`, { cache: 'no-store' })
+      const data = await res.json()
       setCategories(data?.galleryCategories || [])
+    } catch (apiErr) {
+      console.error('[Admin Gallery fetch error]:', apiErr)
+    } finally {
       setLoading(false)
-    })
+    }
   }
 
   useEffect(() => { loadGallery() }, [])
@@ -68,6 +110,7 @@ export default function GalleryEditor() {
 
           if (!insertError) {
             uploadedSuccessfully = true
+            await revalidateGallery()
           }
         }
       } catch (directErr) {
@@ -135,6 +178,7 @@ export default function GalleryEditor() {
 
           if (!insertError) {
             uploadedSuccessfully = true
+            await revalidateGallery()
           }
         }
       } catch (directErr) {
@@ -165,6 +209,7 @@ export default function GalleryEditor() {
     if (res?.error) {
       alert("Delete Error: " + res.error)
     }
+    await revalidateGallery()
     loadGallery()
   }
 

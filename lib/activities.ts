@@ -121,7 +121,7 @@ export const getCachedActivities = unstable_cache(
   async () => getActivities(),
   ['campus-activities-list'],
   {
-    revalidate: 300,
+    revalidate: 60,
     tags: ['campus-activities'],
   }
 )

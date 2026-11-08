@@ -1,17 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDB } from '@/lib/db'
-import { getCachedGalleryCategories } from '@/lib/gallery'
-import { getCachedActivities } from '@/lib/activities'
+import { getGalleryCategories, getCachedGalleryCategories } from '@/lib/gallery'
+import { getActivities, getCachedActivities } from '@/lib/activities'
 import { getLatestNoticesPreview } from '@/lib/notices'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const isNoCache = searchParams.has('_t') || searchParams.has('nocache')
+
     const db = await getDB()
     const [galleryCategories, activities, notices] = await Promise.all([
-      getCachedGalleryCategories(),
-      getCachedActivities(),
+      isNoCache ? getGalleryCategories() : getCachedGalleryCategories(),
+      isNoCache ? getActivities() : getCachedActivities(),
       getLatestNoticesPreview(5),
     ])
 
@@ -22,7 +25,9 @@ export async function GET() {
       notices,
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        'Cache-Control': isNoCache
+          ? 'no-store, no-cache, must-revalidate'
+          : 'public, s-maxage=10, stale-while-revalidate=30',
       },
     })
   } catch (e: any) {

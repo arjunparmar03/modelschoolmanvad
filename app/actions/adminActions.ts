@@ -49,6 +49,16 @@ function safeRevalidate(paths: string[] = [], tags: string[] = []) {
   }
 }
 
+export async function revalidateGallery() {
+  safeRevalidate(['/', '/campus', '/admin/gallery'], ['campus-gallery'])
+  return { success: true }
+}
+
+export async function revalidateActivities() {
+  safeRevalidate(['/', '/campus', '/admin/activities'], ['campus-activities'])
+  return { success: true }
+}
+
 export async function updateContent(content: any) {
   try {
     await requireAdmin()
